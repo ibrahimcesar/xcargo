@@ -1,8 +1,8 @@
 <div align="center">
   
-# Apex 🎯🦀
+# Apex Build 🎯🦀
 
-_The apex cross-compilator_
+_The Apex Cross-Compilator_
 
 **apex** is a Rust cross-compilation tool that simplifies building for multiple targets. Automatic toolchain management, intelligent container usage, and zero-configuration cross-compilation.
 
