@@ -1,0 +1,92 @@
+# apex configuration file example
+# Copy to apex.toml and customize
+
+[targets]
+# Default targets to build
+default = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-gnu",
+]
+
+[build]
+# Number of parallel builds
+parallel = true
+jobs = 4
+
+# Enable caching
+cache = true
+cache_dir = "~/.apex/cache"
+
+# Build profile
+profile = "release"
+
+[profiles.release-all]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "x86_64-pc-windows-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+]
+
+[profiles.embedded]
+targets = [
+    "thumbv7em-none-eabihf",
+    "thumbv7m-none-eabi",
+]
+
+[profiles.mobile]
+targets = [
+    "aarch64-linux-android",
+    "aarch64-apple-ios",
+]
+
+[container]
+# Container runtime strategy
+runtime = "auto"  # auto, youki, docker, podman, native-only
+
+# When to use containers
+use-when = "target.os != host.os"
+
+# Container image registry
+registry = "ghcr.io/apex-rs"
+
+# Cache container images locally
+cache-images = true
+
+[toolchain]
+# Auto-install missing toolchains
+auto-install = true
+
+# Rust channel
+channel = "stable"
+
+[dependencies]
+# Native dependencies configuration
+[dependencies.openssl]
+version = "3.0"
+build = "vendored"  # vendored, system, auto
+
+[dependencies.sqlite]
+version = "3.40"
+static = true
+
+[output]
+# Output directory
+dir = "target/apex"
+
+# Naming pattern
+pattern = "{name}-{version}-{target}"
+# Example: myapp-0.1.0-x86_64-pc-windows-gnu.exe
+
+# Compression
+compress = true  # Creates .tar.gz or .zip
+
+[ignore]
+# Paths to ignore when packaging
+paths = [
+    "tests/",
+    "benches/",
+    "examples/",
+    ".git/",
+]
