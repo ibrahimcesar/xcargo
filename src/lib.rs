@@ -99,11 +99,7 @@ pub mod prelude {
     //! ```rust
     //! use apex::prelude::*;
     //! ```
-    
-    pub use crate::target::*;
-    pub use crate::toolchain::*;
-    pub use crate::build::*;
-    pub use crate::config::*;
+
     pub use crate::error::{Error, Result};
 }
 
