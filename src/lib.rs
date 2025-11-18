@@ -26,6 +26,9 @@
 /// Target platform definitions and detection
 pub mod target;
 
+/// Configuration file handling
+pub mod config;
+
 /// Toolchain installation and management
 pub mod toolchain {
     //! Toolchain detection and setup
@@ -39,11 +42,6 @@ pub mod build {
 /// Container runtime integration
 pub mod container {
     //! Container runtime (youki, docker, podman)
-}
-
-/// Configuration file handling
-pub mod config {
-    //! Configuration parsing and defaults
 }
 
 /// Dependency management (OpenSSL, etc.)
@@ -99,7 +97,8 @@ pub mod prelude {
     //! ```
 
     pub use crate::error::{Error, Result};
-    pub use crate::target::{Target, TargetTier};
+    pub use crate::target::{Target, TargetRequirements, TargetTier};
+    pub use crate::config::Config;
 }
 
 // Re-exports

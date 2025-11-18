@@ -4,10 +4,10 @@
 *.pdb
 Cargo.lock
 
-# apex specific
-/apex-cache/
-/.apex/
-apex.log
+# xcargo specific
+/xcargo-cache/
+/.xcargo/
+xcargo.log
 
 # Build outputs
 /dist/
@@ -32,3 +32,9 @@ apex.log
 # OS
 Thumbs.db
 .vscode/branch-timer.json
+
+# Documentation
+/docs/node_modules/
+/docs/build/
+/docs/.docusaurus/
+/docs/.cache-loader/

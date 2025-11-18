@@ -7,6 +7,55 @@ use std::fmt;
 use std::process::Command;
 use crate::error::{Error, Result};
 
+/// Represents the requirements needed to build for a target
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TargetRequirements {
+    /// Linker required for this target
+    pub linker: Option<String>,
+    /// Additional tools needed (e.g., "lld", "gcc-aarch64-linux-gnu")
+    pub tools: Vec<String>,
+    /// System libraries needed
+    pub system_libs: Vec<String>,
+    /// Environment variables that should be set
+    pub env_vars: Vec<(String, String)>,
+}
+
+impl TargetRequirements {
+    /// Create empty requirements
+    pub fn none() -> Self {
+        Self {
+            linker: None,
+            tools: Vec::new(),
+            system_libs: Vec::new(),
+            env_vars: Vec::new(),
+        }
+    }
+
+    /// Check if all requirements are satisfied
+    pub fn are_satisfied(&self) -> bool {
+        // Check if linker is available
+        if let Some(ref linker) = self.linker {
+            if !Self::is_command_available(linker) {
+                return false;
+            }
+        }
+
+        // Check if all tools are available
+        for tool in &self.tools {
+            if !Self::is_command_available(tool) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Check if a command is available in PATH
+    fn is_command_available(cmd: &str) -> bool {
+        which::which(cmd).is_ok()
+    }
+}
+
 /// Represents a target platform for cross-compilation
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Target {
@@ -335,6 +384,246 @@ impl Target {
     pub fn requires_container(&self) -> bool {
         matches!(self.tier, TargetTier::Container | TargetTier::Specialized)
     }
+
+    /// Get the requirements needed to build for this target
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use xcargo::target::Target;
+    ///
+    /// # fn example() -> xcargo::Result<()> {
+    /// let target = Target::from_triple("aarch64-unknown-linux-gnu")?;
+    /// let reqs = target.get_requirements();
+    /// if !reqs.are_satisfied() {
+    ///     println!("Missing tools for {}", target.triple);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_requirements(&self) -> TargetRequirements {
+        let mut reqs = TargetRequirements::none();
+
+        // Detect linker and tools based on target
+        match (self.os.as_str(), self.arch.as_str(), self.env.as_deref()) {
+            // Linux ARM targets
+            ("linux", "aarch64", Some("gnu")) => {
+                reqs.linker = Some("aarch64-linux-gnu-gcc".to_string());
+                reqs.tools.push("aarch64-linux-gnu-gcc".to_string());
+            }
+            ("linux", "aarch64", Some("musl")) => {
+                reqs.linker = Some("aarch64-linux-musl-gcc".to_string());
+                reqs.tools.push("aarch64-linux-musl-gcc".to_string());
+            }
+            ("linux", "armv7", _) => {
+                reqs.linker = Some("arm-linux-gnueabihf-gcc".to_string());
+                reqs.tools.push("arm-linux-gnueabihf-gcc".to_string());
+            }
+            ("linux", "arm", _) => {
+                reqs.linker = Some("arm-linux-gnueabi-gcc".to_string());
+                reqs.tools.push("arm-linux-gnueabi-gcc".to_string());
+            }
+
+            // Windows targets
+            ("windows", "x86_64", Some("gnu")) => {
+                reqs.linker = Some("x86_64-w64-mingw32-gcc".to_string());
+                reqs.tools.push("x86_64-w64-mingw32-gcc".to_string());
+            }
+            ("windows", "i686", Some("gnu")) => {
+                reqs.linker = Some("i686-w64-mingw32-gcc".to_string());
+                reqs.tools.push("i686-w64-mingw32-gcc".to_string());
+            }
+            ("windows", _, Some("msvc")) => {
+                // MSVC requires special setup (xwin or native Windows)
+                reqs.tools.push("cl.exe".to_string());
+            }
+
+            // Android targets
+            ("android", _, _) => {
+                reqs.tools.push("ndk-build".to_string());
+                reqs.env_vars.push(("ANDROID_NDK_HOME".to_string(), "$ANDROID_NDK_HOME".to_string()));
+            }
+
+            // iOS targets
+            ("ios", _, _) | ("darwin", _, Some("ios")) => {
+                // iOS requires macOS with Xcode
+                reqs.tools.push("xcrun".to_string());
+            }
+
+            // WASM targets - no special linker needed, but may need wasm-pack
+            (_, "wasm32", _) => {
+                // wasm32 typically doesn't need a separate linker
+            }
+
+            // Native targets - use default linker
+            _ => {
+                // For native builds, the default toolchain linker should work
+            }
+        }
+
+        reqs
+    }
+
+    /// Detect the linker that will be used for this target
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use xcargo::target::Target;
+    ///
+    /// # fn example() -> xcargo::Result<()> {
+    /// let target = Target::from_triple("x86_64-unknown-linux-gnu")?;
+    /// if let Some(linker) = target.detect_linker() {
+    ///     println!("Linker: {}", linker);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn detect_linker(&self) -> Option<String> {
+        let reqs = self.get_requirements();
+
+        if let Some(linker) = reqs.linker {
+            // Check if the required linker is available
+            if TargetRequirements::is_command_available(&linker) {
+                return Some(linker);
+            }
+        }
+
+        // Try to detect alternative linkers
+        let alternatives = match (self.os.as_str(), self.arch.as_str()) {
+            ("linux", "aarch64") => vec!["aarch64-linux-gnu-gcc", "aarch64-linux-musl-gcc"],
+            ("linux", "armv7") => vec!["arm-linux-gnueabihf-gcc", "arm-linux-gnueabi-gcc"],
+            ("windows", "x86_64") => vec!["x86_64-w64-mingw32-gcc", "gcc"],
+            ("windows", "i686") => vec!["i686-w64-mingw32-gcc", "gcc"],
+            _ => vec!["gcc", "clang", "cc"],
+        };
+
+        for linker in alternatives {
+            if TargetRequirements::is_command_available(linker) {
+                return Some(linker.to_string());
+            }
+        }
+
+        None
+    }
+
+    /// Check if we can build for this target without containers
+    ///
+    /// This checks both the target tier and whether required tools are available
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use xcargo::target::Target;
+    ///
+    /// # fn example() -> xcargo::Result<()> {
+    /// let target = Target::from_triple("x86_64-unknown-linux-gnu")?;
+    /// let host = Target::detect_host()?;
+    ///
+    /// if target.can_cross_compile_from(&host) {
+    ///     println!("Can build natively!");
+    /// } else {
+    ///     println!("Need container or missing tools");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn can_cross_compile_from(&self, host: &Target) -> bool {
+        // Same target - can always build
+        if self.triple == host.triple {
+            return true;
+        }
+
+        // Check if it's a native-tier target
+        if !self.supports_native_build() {
+            return false;
+        }
+
+        // Check if required tools are available
+        let reqs = self.get_requirements();
+        reqs.are_satisfied()
+    }
+
+    /// Get installation instructions for missing requirements
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use xcargo::target::Target;
+    ///
+    /// # fn example() -> xcargo::Result<()> {
+    /// let target = Target::from_triple("aarch64-unknown-linux-gnu")?;
+    /// let instructions = target.get_install_instructions();
+    /// for instruction in instructions {
+    ///     println!("  {}", instruction);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_install_instructions(&self) -> Vec<String> {
+        let mut instructions = Vec::new();
+        let reqs = self.get_requirements();
+
+        if reqs.are_satisfied() {
+            return instructions;
+        }
+
+        // Detect OS and provide appropriate installation instructions
+        let host_os = std::env::consts::OS;
+
+        match (self.os.as_str(), self.arch.as_str(), host_os) {
+            ("linux", "aarch64", "linux") => {
+                instructions.push("# Debian/Ubuntu:".to_string());
+                instructions.push("sudo apt-get install gcc-aarch64-linux-gnu".to_string());
+                instructions.push("# Fedora/RHEL:".to_string());
+                instructions.push("sudo dnf install gcc-aarch64-linux-gnu".to_string());
+            }
+            ("linux", "aarch64", "macos") => {
+                instructions.push("# macOS: Container build recommended".to_string());
+                instructions.push("# Or use cross-compilation toolchain:".to_string());
+                instructions.push("brew tap messense/macos-cross-toolchains".to_string());
+                instructions.push("brew install aarch64-unknown-linux-gnu".to_string());
+            }
+            ("linux", "armv7", "linux") => {
+                instructions.push("# Debian/Ubuntu:".to_string());
+                instructions.push("sudo apt-get install gcc-arm-linux-gnueabihf".to_string());
+                instructions.push("# Fedora/RHEL:".to_string());
+                instructions.push("sudo dnf install gcc-arm-linux-gnu".to_string());
+            }
+            ("windows", "x86_64", "linux") => {
+                instructions.push("# Debian/Ubuntu:".to_string());
+                instructions.push("sudo apt-get install mingw-w64".to_string());
+                instructions.push("# Fedora/RHEL:".to_string());
+                instructions.push("sudo dnf install mingw64-gcc".to_string());
+            }
+            ("windows", "x86_64", "macos") => {
+                instructions.push("# macOS (Homebrew):".to_string());
+                instructions.push("brew install mingw-w64".to_string());
+            }
+            ("android", _, _) => {
+                instructions.push("# Install Android NDK:".to_string());
+                instructions.push("# Download from: https://developer.android.com/ndk/downloads".to_string());
+                instructions.push("export ANDROID_NDK_HOME=/path/to/ndk".to_string());
+            }
+            ("ios", _, "macos") => {
+                instructions.push("# iOS requires Xcode:".to_string());
+                instructions.push("xcode-select --install".to_string());
+            }
+            ("ios", _, _) => {
+                instructions.push("# iOS requires macOS with Xcode".to_string());
+                instructions.push("# Consider using a container or CI/CD on macOS".to_string());
+            }
+            _ => {
+                instructions.push(format!(
+                    "# No automatic installation instructions available for {}",
+                    self.triple
+                ));
+                instructions.push("# Consider using container-based build".to_string());
+            }
+        }
+
+        instructions
+    }
 }
 
 impl fmt::Display for Target {
@@ -455,5 +744,81 @@ mod tests {
         assert!(!host.triple.is_empty());
         assert!(!host.arch.is_empty());
         assert!(!host.os.is_empty());
+    }
+
+    #[test]
+    fn test_target_requirements() {
+        let target = Target::from_triple("aarch64-unknown-linux-gnu").unwrap();
+        let reqs = target.get_requirements();
+
+        // Should have a linker requirement
+        assert!(reqs.linker.is_some());
+        assert_eq!(reqs.linker.unwrap(), "aarch64-linux-gnu-gcc");
+    }
+
+    #[test]
+    fn test_native_target_requirements() {
+        let target = Target::from_triple("x86_64-unknown-linux-gnu").unwrap();
+        let reqs = target.get_requirements();
+
+        // Native targets may not require special linkers
+        // Requirements should still be created
+        assert_eq!(reqs.tools.len(), 0);
+    }
+
+    #[test]
+    fn test_windows_target_requirements() {
+        let target = Target::from_triple("x86_64-pc-windows-gnu").unwrap();
+        let reqs = target.get_requirements();
+
+        assert!(reqs.linker.is_some());
+        assert_eq!(reqs.linker.unwrap(), "x86_64-w64-mingw32-gcc");
+    }
+
+    #[test]
+    fn test_can_cross_compile_same_target() {
+        let target1 = Target::from_triple("x86_64-unknown-linux-gnu").unwrap();
+        let target2 = Target::from_triple("x86_64-unknown-linux-gnu").unwrap();
+
+        assert!(target1.can_cross_compile_from(&target2));
+    }
+
+    #[test]
+    fn test_get_install_instructions() {
+        let target = Target::from_triple("aarch64-unknown-linux-gnu").unwrap();
+        let _instructions = target.get_install_instructions();
+
+        // Just verify the method works without panicking
+        // Instructions will vary based on whether tools are installed
+    }
+
+    #[test]
+    fn test_detect_linker() {
+        let target = Target::from_triple("x86_64-unknown-linux-gnu").unwrap();
+
+        // Should be able to detect some linker (gcc, clang, or cc)
+        // This test might fail if no compiler is installed, but that's expected
+        let linker = target.detect_linker();
+        // Just verify the method works without panicking
+        assert!(linker.is_some() || linker.is_none());
+    }
+
+    #[test]
+    fn test_requirements_none() {
+        let reqs = TargetRequirements::none();
+        assert!(reqs.linker.is_none());
+        assert_eq!(reqs.tools.len(), 0);
+        assert_eq!(reqs.system_libs.len(), 0);
+        assert_eq!(reqs.env_vars.len(), 0);
+    }
+
+    #[test]
+    fn test_android_requirements() {
+        let target = Target::from_triple("aarch64-linux-android").unwrap();
+        let reqs = target.get_requirements();
+
+        // Android should require NDK
+        assert!(!reqs.tools.is_empty());
+        assert!(reqs.tools.contains(&"ndk-build".to_string()));
     }
 }

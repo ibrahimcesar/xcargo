@@ -1,0 +1,69 @@
+# xcargo Configuration Example
+# Copy this file to xcargo.toml and customize for your project
+
+[targets]
+# Default targets to build when no target is specified
+default = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-gnu",
+]
+
+# Per-target custom configuration
+# [targets."x86_64-pc-windows-gnu"]
+# linker = "x86_64-w64-mingw32-gcc"
+# force_container = false
+# rustflags = ["--cfg", "feature=\"custom\""]
+#
+# [targets."x86_64-pc-windows-gnu".env]
+# CC = "x86_64-w64-mingw32-gcc"
+# CXX = "x86_64-w64-mingw32-g++"
+
+[build]
+# Enable parallel builds for multiple targets
+parallel = true
+
+# Number of parallel jobs (omit for auto-detection)
+# jobs = 4
+
+# Enable build caching
+cache = true
+
+# Force container builds even when native is possible
+force_container = false
+
+# Additional cargo flags
+cargo_flags = []
+
+[container]
+# Container runtime to use: auto, youki, docker, podman
+runtime = "auto"
+
+# When to use containers:
+# - "always": Always use containers
+# - "never": Never use containers
+# - "target.os != host.os": Use when cross-compiling to different OS (default)
+use_when = "target.os != host.os"
+
+# Custom container image registry
+# registry = "ghcr.io/xcargo"
+
+# Image pull policy: always, never, if-not-present
+pull_policy = "if-not-present"
+
+# Example profile for CI/CD
+# [profiles.ci]
+# targets = [
+#     "x86_64-unknown-linux-gnu",
+#     "x86_64-pc-windows-gnu",
+#     "x86_64-apple-darwin",
+# ]
+
+# Example profile for release builds
+# [profiles.release-all]
+# targets = [
+#     "x86_64-unknown-linux-gnu",
+#     "x86_64-pc-windows-gnu",
+#     "x86_64-apple-darwin",
+#     "aarch64-unknown-linux-gnu",
+#     "aarch64-apple-darwin",
+# ]
