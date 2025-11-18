@@ -1,6 +1,6 @@
 <div align="center">
   
-# apex 🎯🦀
+# Apex 🎯🦀
 
 _The apex cross-compilator_
 
