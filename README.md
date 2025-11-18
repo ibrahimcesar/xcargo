@@ -1,16 +1,16 @@
 <div align="center">
-  
-# Apex Build 🎯🦀
 
-_The Apex Cross-Compilator_
+# xcargo 🎯
 
-**apex** is a Rust cross-compilation tool that simplifies building for multiple targets. Automatic toolchain management, intelligent container usage, and zero-configuration cross-compilation.
+_Cross-compilation, zero friction_
+
+**xcargo** is a Rust cross-compilation tool that simplifies building for multiple targets. Automatic toolchain management, intelligent container usage, and zero-configuration cross-compilation.
 
 </div>
 
-## 🎯 What is apex?
+## 🎯 What is xcargo?
 
-Cross-compilation in Rust shouldn't be painful. **apex** automates the entire process:
+Cross-compilation in Rust shouldn't be painful. **xcargo** automates the entire process:
 
 - **Detects** what you need automatically
 - **Installs** toolchains and dependencies
@@ -36,35 +36,35 @@ Current version: `0.1.0-alpha`
 ## 🚀 Quick Example (Planned API)
 ```bash
 # Initialize cross-compilation for your project
-apex init
+xcargo init
 
 # Add target platforms
-apex target add windows linux macos
+xcargo target add windows linux macos
 
 # Check what's needed
-apex doctor
+xcargo doctor
 # ✅ windows-x86_64: Ready
 # ❌ linux-arm64: Missing linker (install: apt install gcc-aarch64-linux-gnu)
 # ⚠️  macos-aarch64: Requires macOS host for native compilation
 
 # Build for all configured targets
-apex build --all
+xcargo build --all
 
 # Build for specific target
-apex build --target x86_64-pc-windows-gnu
+xcargo build --target x86_64-pc-windows-gnu
 
 # Or use as cargo wrapper
-apex cargo build --target x86_64-pc-windows-gnu
+xcargo cargo build --target x86_64-pc-windows-gnu
 ```
 
 ## 📦 Installation
 ```bash
 # Not yet published - coming soon!
-cargo install apex
+cargo install xcargo
 
 # Or build from source:
-git clone https://github.com/yourusername/apex
-cd apex
+git clone https://github.com/ibrahimcesar/xcargo
+cd xcargo
 cargo build --release
 ```
 
@@ -119,7 +119,7 @@ See [TARGETS.md](TARGETS.md) for the complete list.
 
 ```
 ┌─────────────────────────────────┐
-│ apex build --target windows     │
+│ xcargo build --target windows   │
 └────────────┬────────────────────┘
              │
              ▼
@@ -148,18 +148,18 @@ See [TARGETS.md](TARGETS.md) for the complete list.
 ### Basic Cross-Compilation
 ```bash
 # Build for Windows from Linux
-apex build --target x86_64-pc-windows-gnu
+xcargo build --target x86_64-pc-windows-gnu
 
 # Build for Linux ARM
-apex build --target aarch64-unknown-linux-gnu
+xcargo build --target aarch64-unknown-linux-gnu
 
 # Build for all targets
-apex build --all
+xcargo build --all
 ```
 
 ### Configuration File
 ```toml
-# apex.toml
+# xcargo.toml
 [targets]
 default = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-gnu"]
 
@@ -191,15 +191,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Install apex
-        run: cargo install apex
-      
+
+      - name: Install xcargo
+        run: cargo install xcargo
+
       - name: Build all targets
-        run: apex build --all
-      
+        run: xcargo build --all
+
       - name: Upload artifacts
-        run: apex release --upload
+        run: xcargo release --upload
 ```
 
 ## 🎨 Design Goals
@@ -214,8 +214,8 @@ jobs:
 
 ## 🆚 Comparison
 
-| Feature | apex | cross | cargo-zigbuild | Manual |
-|---------|------|-------|----------------|--------|
+| Feature | xcargo | cross | cargo-zigbuild | Manual |
+|---------|--------|-------|----------------|--------|
 | **Native builds** | ✅ First | ❌ | ⚠️ Via Zig | ✅ |
 | **Container fallback** | ✅ | ✅ | ❌ | ❌ |
 | **No Docker required** | ✅ youki | ❌ | ✅ | ✅ |
@@ -248,7 +248,7 @@ Inspired by:
 
 ---
 
-**apex** - *The apex cross-compilator for Rust* 🎯🦀
+**xcargo** - *Cross-compilation, zero friction* 🎯
 
 *Status: 🚧 Pre-alpha - Architecture planning*
 
