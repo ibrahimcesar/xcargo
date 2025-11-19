@@ -195,6 +195,42 @@ xcargo supports all Rust targets. Common ones include:
 
 Run `xcargo target list` to see all common targets with descriptions.
 
+## 🔧 Linker Configuration
+
+For successful cross-compilation, you often need to configure linkers. xcargo makes this easy:
+
+### Windows Cross-Compilation (from macOS/Linux)
+
+```toml
+[targets."x86_64-pc-windows-gnu"]
+linker = "x86_64-w64-mingw32-gcc"
+
+[targets."x86_64-pc-windows-gnu".env]
+CC = "x86_64-w64-mingw32-gcc"
+AR = "x86_64-w64-mingw32-ar"
+```
+
+**Install on macOS:** `brew install mingw-w64`
+**Install on Linux:** `sudo apt install mingw-w64`
+
+### Linux Cross-Compilation (from macOS)
+
+```toml
+[targets."x86_64-unknown-linux-gnu"]
+linker = "x86_64-linux-gnu-gcc"
+
+[targets."x86_64-unknown-linux-gnu".env]
+CC = "x86_64-linux-gnu-gcc"
+```
+
+**Note:** Linux cross-compilation from macOS often requires containers (coming soon)
+
+### What xcargo does automatically:
+- ✅ Verifies linker exists in PATH before building
+- ✅ Sets `CARGO_TARGET_*_LINKER` environment variable
+- ✅ Applies custom environment variables (`CC`, `AR`, etc.)
+- ✅ Shows helpful errors with installation instructions if linker is missing
+
 ## 🔧 How It Works
 
 1. **Target Detection** - Analyzes the target triple and determines requirements
@@ -309,12 +345,13 @@ Container strategy: target.os != host.os
 - Beautiful colored output with tips
 - Self-building capability (xcargo builds itself!)
 - **Parallel target compilation** (2-3x speedup with `parallel = true`)
+- **Linker configuration** (automatic CARGO_TARGET_*_LINKER setup)
+- Smart error messages with platform-specific help
 - GitHub Actions CI/CD integration
 
 🚧 **Planned Features:**
 - Container builds (Docker/Podman/youki)
 - Native dependency management
-- Custom linker configuration
 - Build caching improvements
 
 ## 🆚 Comparison
