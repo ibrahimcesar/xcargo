@@ -40,6 +40,10 @@ enum Commands {
         #[arg(short, long)]
         release: bool,
 
+        /// Use container for build (requires --features container)
+        #[arg(long)]
+        container: bool,
+
         /// Toolchain to use (e.g., stable, nightly)
         #[arg(long)]
         toolchain: Option<String>,
@@ -297,6 +301,7 @@ fn main() -> Result<()> {
             target,
             all,
             release,
+            container,
             toolchain,
             cargo_args,
         } => {
@@ -308,6 +313,7 @@ fn main() -> Result<()> {
                 cargo_args,
                 toolchain,
                 verbose: cli.verbose,
+                use_container: container,
             };
 
             if all {

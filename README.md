@@ -22,6 +22,7 @@ _Cross-compilation, zero friction_
 - ⚡ **Smart Detection** - Figures out what you need automatically
 - 📦 **Interactive Setup** - TUI wizard for easy project configuration
 - 🚀 **Parallel Builds** - Build multiple targets concurrently for 2-3x speedup
+- 🐳 **Container Support** - Docker/Podman integration for complex cross-compilation
 - 🌍 **Many Targets** - Linux, Windows, macOS, WebAssembly, and more
 - 🤖 **CI/CD Ready** - Perfect for GitHub Actions, GitLab CI
 
@@ -33,10 +34,13 @@ _Cross-compilation, zero friction_
 # Install from crates.io (recommended)
 cargo install xcargo
 
+# Install with container support
+cargo install xcargo --features container
+
 # Or build from source
 git clone https://github.com/ibrahimcesar/xcargo
 cd xcargo
-cargo build --release
+cargo build --release --features container
 ```
 
 ### Interactive Setup
@@ -86,6 +90,9 @@ xcargo build --target aarch64-apple-darwin
 
 # Build for WebAssembly
 xcargo build --target wasm32-unknown-unknown
+
+# Use container for build (requires --features container)
+xcargo build --target x86_64-unknown-linux-gnu --container
 ```
 
 ### Target Management
@@ -153,7 +160,8 @@ force_container = false
 cargo_flags = []
 
 [container]
-# Container runtime: auto, youki, docker, podman
+# Container runtime: auto, docker, podman
+# Note: youki (pure Rust OCI runtime) will be supported in a future release
 runtime = "auto"
 
 # When to use containers
@@ -223,13 +231,223 @@ linker = "x86_64-linux-gnu-gcc"
 CC = "x86_64-linux-gnu-gcc"
 ```
 
-**Note:** Linux cross-compilation from macOS often requires containers (coming soon)
+**Note:** Linux cross-compilation from macOS often requires containers
 
 ### What xcargo does automatically:
 - ✅ Verifies linker exists in PATH before building
 - ✅ Sets `CARGO_TARGET_*_LINKER` environment variable
 - ✅ Applies custom environment variables (`CC`, `AR`, etc.)
 - ✅ Shows helpful errors with installation instructions if linker is missing
+
+## 🐳 Container Builds
+
+For complex cross-compilation scenarios where native toolchains are difficult to set up, xcargo supports container-based builds using Docker or Podman.
+
+### Installation with Container Support
+
+```bash
+# Install xcargo with container feature
+cargo install xcargo --features container
+
+# Ensure you have Docker or Podman installed
+docker --version  # or: podman --version
+```
+
+### When to Use Containers
+
+Container builds are ideal when:
+- 🌐 Cross-compiling between different operating systems (e.g., macOS → Linux)
+- 🔧 Native toolchains are difficult to install or configure
+- 🎯 You need reproducible builds across different development machines
+- 📦 Your project has complex system dependencies
+
+### Basic Usage
+
+```bash
+# Build using a container
+xcargo build --target x86_64-unknown-linux-gnu --container
+
+# Container builds work with all flags
+xcargo build --target aarch64-unknown-linux-gnu --container --release
+```
+
+### Automatic Container Detection
+
+Configure xcargo to automatically use containers when needed:
+
+```toml
+# xcargo.toml
+[container]
+# Container runtime: auto, docker, podman
+runtime = "auto"
+
+# Automatically use containers when cross-compiling to different OS
+use_when = "target.os != host.os"
+
+# Or always use containers
+# use_when = "always"
+
+# Or never use containers
+# use_when = "never"
+
+# Image pull policy: always, if-not-present, never
+pull_policy = "if-not-present"
+```
+
+With this configuration, xcargo will automatically use containers when building for a different OS:
+
+```bash
+# On macOS, this will automatically use a container
+xcargo build --target x86_64-unknown-linux-gnu
+
+# On Linux, this will use native toolchain
+xcargo build --target x86_64-unknown-linux-gnu
+```
+
+### Supported Container Targets
+
+xcargo uses pre-built images from [cross-rs](https://github.com/cross-rs/cross) for these targets:
+
+**Linux:**
+- `x86_64-unknown-linux-gnu`
+- `x86_64-unknown-linux-musl`
+- `aarch64-unknown-linux-gnu`
+- `aarch64-unknown-linux-musl`
+- `armv7-unknown-linux-gnueabihf`
+- `arm-unknown-linux-gnueabihf`
+
+**Windows:**
+- `x86_64-pc-windows-gnu`
+
+**Android:**
+- `aarch64-linux-android`
+- `armv7-linux-androideabi`
+- `x86_64-linux-android`
+- `i686-linux-android`
+
+**Note:** macOS and WebAssembly targets don't use containers:
+- macOS cross-compilation requires osxcross or building on macOS
+- WebAssembly builds work natively without containers
+
+### Container Requirements
+
+**Docker:**
+```bash
+# macOS
+brew install --cask docker
+# Or download from https://www.docker.com/products/docker-desktop
+
+# Linux
+sudo apt install docker.io  # Ubuntu/Debian
+sudo dnf install docker      # Fedora
+sudo systemctl start docker
+sudo usermod -aG docker $USER  # Add yourself to docker group
+```
+
+**Podman (Docker-compatible alternative):**
+```bash
+# macOS
+brew install podman
+podman machine init
+podman machine start
+
+# Linux
+sudo apt install podman     # Ubuntu/Debian
+sudo dnf install podman      # Fedora
+```
+
+### Advanced Configuration
+
+```toml
+[container]
+# Prefer specific runtime
+runtime = "podman"
+
+# Custom registry for images
+registry = "my-registry.com/cross-images"
+
+# Always use containers for reproducible builds
+use_when = "always"
+
+# Per-target container configuration
+[targets."x86_64-unknown-linux-gnu"]
+linker = "x86_64-linux-gnu-gcc"
+
+[targets."x86_64-unknown-linux-gnu".env]
+CC = "x86_64-linux-gnu-gcc"
+CUSTOM_VAR = "value"
+```
+
+### How Container Builds Work
+
+1. **Runtime Detection** - Finds Docker or Podman on your system
+2. **Image Selection** - Chooses the appropriate cross-rs image for your target
+3. **Volume Mounting** - Mounts your project and cargo cache into the container
+4. **Build Execution** - Runs `cargo build` inside the container
+5. **Artifact Extraction** - Build artifacts appear in your local `target/` directory
+
+```
+┌─────────────────────────────────┐
+│ xcargo build --container        │
+└──────────┬──────────────────────┘
+           │
+           ▼
+   ┌───────────────────┐
+   │ Detect container  │
+   │ runtime (Docker/  │
+   │ Podman)           │
+   └───────┬───────────┘
+           │
+           ▼
+   ┌───────────────────┐
+   │ Pull cross-rs     │
+   │ image for target  │
+   └───────┬───────────┘
+           │
+           ▼
+   ┌───────────────────┐
+   │ Mount project &   │
+   │ cargo cache       │
+   └───────┬───────────┘
+           │
+           ▼
+   ┌───────────────────┐
+   │ Run cargo build   │
+   │ in container      │
+   └───────┬───────────┘
+           │
+           ▼
+   ┌───────────────────┐
+   │ Extract artifacts │
+   │ to local target/  │
+   └───────────────────┘
+```
+
+### Troubleshooting
+
+**Container runtime not found:**
+```bash
+# Check if Docker/Podman is installed and running
+docker info
+# or
+podman info
+```
+
+**Permission denied errors (Linux):**
+```bash
+# Add your user to the docker group
+sudo usermod -aG docker $USER
+# Then log out and back in
+```
+
+**Image pull failures:**
+```bash
+# Manually pull the image
+docker pull ghcr.io/cross-rs/x86_64-unknown-linux-gnu:latest
+
+# Check your network/proxy settings
+docker info | grep -i proxy
+```
 
 ## 🔧 How It Works
 
@@ -346,13 +564,15 @@ Container strategy: target.os != host.os
 - Self-building capability (xcargo builds itself!)
 - **Parallel target compilation** (2-3x speedup with `parallel = true`)
 - **Linker configuration** (automatic CARGO_TARGET_*_LINKER setup)
+- **Container builds** (Docker/Podman integration with `--features container`)
 - Smart error messages with platform-specific help
 - GitHub Actions CI/CD integration
 
 🚧 **Planned Features:**
-- Container builds (Docker/Podman/youki)
+- Pure Rust OCI runtime (youki integration) as optional feature
 - Native dependency management
 - Build caching improvements
+- Custom container image support
 
 ## 🆚 Comparison
 
@@ -364,7 +584,7 @@ Container strategy: target.os != host.os
 | **Parallel builds** | ✅ | ❌ | ❌ |
 | **Beautiful output** | ✅ | ⚠️ | ⚠️ |
 | **Configuration file** | ✅ | ✅ | ❌ |
-| **Container fallback** | 🚧 Planned | ✅ | ❌ |
+| **Container support** | ✅ | ✅ | ❌ |
 | **Zero config** | ✅ | ❌ | ⚠️ |
 
 ## 🤝 Contributing

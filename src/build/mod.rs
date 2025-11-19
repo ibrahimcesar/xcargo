@@ -29,6 +29,9 @@ pub struct BuildOptions {
 
     /// Verbose output
     pub verbose: bool,
+
+    /// Use container for build
+    pub use_container: bool,
 }
 
 impl Default for BuildOptions {
@@ -39,6 +42,7 @@ impl Default for BuildOptions {
             cargo_args: Vec::new(),
             toolchain: None,
             verbose: false,
+            use_container: false,
         }
     }
 }
@@ -121,6 +125,14 @@ impl Builder {
         // Parse target
         let target = Target::from_triple(&target_triple)?;
         helpers::progress(format!("Building for target: {}", target.triple));
+
+        // Check if we should use container build
+        let should_use_container = options.use_container ||
+            self.should_use_container_for_target(&target)?;
+
+        if should_use_container {
+            return self.build_with_container(&target, options);
+        }
 
         // Determine toolchain
         let toolchain = if let Some(tc) = &options.toolchain {
@@ -450,6 +462,144 @@ impl Builder {
         }
 
         Ok(())
+    }
+
+    /// Determine if a container build should be used for this target
+    fn should_use_container_for_target(&self, target: &Target) -> Result<bool> {
+        #[cfg(not(feature = "container"))]
+        {
+            return Ok(false);
+        }
+
+        #[cfg(feature = "container")]
+        {
+            let host = Target::detect_host()?;
+
+            // Check config's use_when condition
+            match self.config.container.use_when.as_str() {
+                "always" => Ok(true),
+                "never" => Ok(false),
+                "target.os != host.os" => Ok(target.os != host.os),
+                _ => Ok(false),
+            }
+        }
+    }
+
+    /// Build using a container
+    #[cfg(feature = "container")]
+    fn build_with_container(&self, target: &Target, options: &BuildOptions) -> Result<()> {
+        use crate::container::{ContainerBuilder, ContainerConfig, RuntimeType};
+
+        helpers::section("xcargo container build");
+        helpers::info(format!("Building {} using container", target.triple));
+
+        // Determine runtime type from config
+        let runtime_type = RuntimeType::from_str(&self.config.container.runtime)
+            .unwrap_or(RuntimeType::Auto);
+
+        // Create container builder
+        let container_builder = ContainerBuilder::new(runtime_type)
+            .map_err(|e| {
+                helpers::error(format!("Failed to initialize container runtime: {}", e));
+                helpers::hint("Make sure Docker or Podman is installed and running");
+
+                let host_os = Target::detect_host().ok().map(|h| h.os).unwrap_or_default();
+                match host_os.as_str() {
+                    "macos" => {
+                        helpers::tip("Install Docker Desktop: https://www.docker.com/products/docker-desktop");
+                        helpers::tip("Or install Podman: brew install podman && podman machine init && podman machine start");
+                    }
+                    "linux" => {
+                        helpers::tip("Install Docker: https://docs.docker.com/engine/install/");
+                        helpers::tip("Or install Podman: sudo apt install podman  (or your distro's package manager)");
+                    }
+                    "windows" => {
+                        helpers::tip("Install Docker Desktop: https://www.docker.com/products/docker-desktop");
+                        helpers::tip("Or install Podman: https://podman.io/getting-started/installation");
+                    }
+                    _ => {
+                        helpers::tip("Install Docker or Podman to use container builds");
+                    }
+                }
+
+                e
+            })?;
+
+        if !container_builder.is_available() {
+            helpers::error(format!("Container runtime '{}' is not available", container_builder.runtime_name()));
+            helpers::hint("Make sure the container runtime is installed and running");
+            return Err(Error::Container("Container runtime not available".to_string()));
+        }
+
+        helpers::success(format!("Using container runtime: {}", container_builder.runtime_name()));
+
+        // Select appropriate image
+        let image = container_builder.select_image(&target.triple)
+            .map_err(|e| {
+                helpers::error(format!("Failed to select container image: {}", e));
+
+                // Suggest alternatives based on the error
+                if target.os == "macos" {
+                    helpers::hint("macOS cross-compilation requires osxcross or building on macOS");
+                    helpers::tip("Consider using GitHub Actions macOS runners for macOS builds");
+                } else if target.triple.starts_with("wasm") {
+                    helpers::hint("WebAssembly doesn't require containers - use native build");
+                    helpers::tip("Run without --container flag");
+                } else {
+                    helpers::hint("This target may not have a pre-built container image");
+                    helpers::tip("You can specify a custom image in xcargo.toml");
+                }
+
+                e
+            })?;
+
+        helpers::info(format!("Using image: {}", image.full_name()));
+
+        // Build container config
+        let mut container_config = ContainerConfig::default();
+        container_config.runtime = runtime_type;
+        container_config.image = image.full_name();
+
+        // Add custom environment variables from target config
+        if let Some(target_config) = self.config.get_target_config(&target.triple) {
+            for (key, value) in &target_config.env {
+                container_config.env.push((key.clone(), value.clone()));
+            }
+        }
+
+        // Execute container build
+        helpers::progress("Pulling container image...");
+
+        let mut cargo_args = options.cargo_args.clone();
+        if options.release {
+            cargo_args.insert(0, "--release".to_string());
+        }
+        if options.verbose {
+            cargo_args.insert(0, "--verbose".to_string());
+        }
+
+        container_builder.build(&target.triple, &cargo_args, &container_config)?;
+
+        println!(); // Empty line for spacing
+        helpers::success(format!("Container build completed for {}", target.triple));
+
+        // Show helpful tips
+        if options.release {
+            helpers::tip(format!("Release build artifacts are in target/{}/release/", target.triple));
+        } else {
+            helpers::tip(format!("Debug build artifacts are in target/{}/debug/", target.triple));
+        }
+
+        Ok(())
+    }
+
+    /// Build using a container (fallback when feature not enabled)
+    #[cfg(not(feature = "container"))]
+    fn build_with_container(&self, _target: &Target, _options: &BuildOptions) -> Result<()> {
+        helpers::error("Container support not enabled");
+        helpers::hint("Rebuild xcargo with: cargo install xcargo --features container");
+        helpers::tip("Or use native build without --container flag");
+        Err(Error::Container("Container feature not enabled".to_string()))
     }
 }
 

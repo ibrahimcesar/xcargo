@@ -36,9 +36,8 @@ pub mod toolchain;
 pub mod build;
 
 /// Container runtime integration
-pub mod container {
-    //! Container runtime (youki, docker, podman)
-}
+#[cfg(feature = "container")]
+pub mod container;
 
 /// Dependency management (OpenSSL, etc.)
 pub mod deps {
@@ -76,6 +75,10 @@ pub mod error {
         /// Configuration error
         #[error("Configuration error: {0}")]
         Config(String),
+
+        /// Container error
+        #[error("Container error: {0}")]
+        Container(String),
     }
     
     /// Result type alias

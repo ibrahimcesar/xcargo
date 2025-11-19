@@ -55,7 +55,8 @@ indicatif = "0.17"
 inquire = "0.7"
 
 # Future: Container runtime
-# youki = { version = "0.3", optional = true }
+# Note: Currently uses CLI (docker/podman commands)
+# Future: Consider bollard (Rust Docker client) or youki (Rust OCI runtime)
 
 # Future: HTTP for downloading toolchains
 # reqwest = { version = "0.11", features = ["blocking"], optional = true }
@@ -72,8 +73,8 @@ predicates = "3.1"
 [features]
 default = []
 
-# Container runtime
-container = [] # ["dep:youki"]
+# Container runtime (uses CLI tools: docker, podman, or youki)
+container = []
 
 # Toolchain downloading
 download = [] # ["dep:reqwest"]
