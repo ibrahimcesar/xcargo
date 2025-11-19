@@ -1,23 +1,23 @@
 [package]
 name = "xcargo"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.70"
 authors = ["Ibrahim Cesar <email@ibrahimcesar.com>"]
 license = "MIT"
-description = "Cross-compilation made simple - Build for any target with zero configuration"
-homepage = "https://github.com/ibrahimcesar/xcargo"
+description = "Cross-compilation, zero friction - Rust cross-compilation tool with automatic toolchain management"
+homepage = "https://ibrahimcesar.github.io/xcargo"
 repository = "https://github.com/ibrahimcesar/xcargo"
 documentation = "https://docs.rs/xcargo"
-keywords = [
-    "cross-compilation",
-    "build-tools",
-    "toolchain",
-    "cargo",
-    "compiler",
-]
+keywords = ["cross-compilation", "build", "toolchain", "cargo", "rustup"]
 categories = ["command-line-utilities", "development-tools::build-utils"]
 readme = "README.md"
+exclude = [
+    "docs/*",
+    ".github/*",
+    ".vscode/*",
+    "*.log",
+]
 
 [lib]
 name = "xcargo"
