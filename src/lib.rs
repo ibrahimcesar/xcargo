@@ -48,9 +48,7 @@ pub mod deps {
 }
 
 /// Output and logging
-pub mod output {
-    //! User-facing output formatting
-}
+pub mod output;
 
 /// Error types
 pub mod error {
