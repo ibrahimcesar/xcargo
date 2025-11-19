@@ -334,7 +334,7 @@ Container strategy: target.os != host.os
 
 ## 📊 Status
 
-**Current Version:** 0.1.0
+**Current Version:** 0.2.0
 
 ✅ **Working Features:**
 - Target detection and validation
