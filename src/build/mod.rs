@@ -142,17 +142,77 @@ impl Builder {
             }
         }
 
-        // Get linker suggestion
-        let requirements = target.get_requirements();
-        if let Some(linker) = requirements.linker {
-            helpers::hint(format!("Recommended linker: {}", linker));
-            helpers::tip(format!("Set linker in xcargo.toml: [targets.\"{}\"] linker = \"{}\"",
-                target.triple, linker));
+        // Get target-specific configuration
+        let target_config = self.config.get_target_config(&target.triple);
+
+        // Check linker configuration and availability
+        let linker = if let Some(config) = target_config {
+            config.linker.clone()
+        } else {
+            let requirements = target.get_requirements();
+            requirements.linker.map(|s| s.to_string())
+        };
+
+        // Verify linker exists if specified
+        if let Some(ref linker_path) = linker {
+            if which::which(linker_path).is_err() {
+                helpers::warning(format!("Configured linker '{}' not found in PATH", linker_path));
+                helpers::hint(format!("Install the linker: {}", linker_path));
+
+                let requirements = target.get_requirements();
+                if !requirements.tools.is_empty() {
+                    helpers::hint(format!("Required tools: {}", requirements.tools.join(", ")));
+                }
+            } else {
+                helpers::info(format!("Using linker: {}", linker_path));
+            }
+        } else {
+            // No linker configured, show suggestion if needed
+            let requirements = target.get_requirements();
+            if let Some(suggested_linker) = requirements.linker {
+                helpers::hint(format!("Recommended linker: {}", suggested_linker));
+                helpers::tip(format!("Set linker in xcargo.toml: [targets.\"{}\"] linker = \"{}\"",
+                    target.triple, suggested_linker));
+            }
         }
 
         // Build cargo command
         helpers::progress("Running cargo build...");
         let mut cmd = Command::new("cargo");
+
+        // Set environment variables for linker and custom env vars
+        if let Some(ref linker_path) = linker {
+            // Convert target triple to CARGO env var format
+            // e.g., x86_64-pc-windows-gnu -> CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER
+            let env_var = format!(
+                "CARGO_TARGET_{}_LINKER",
+                target.triple.to_uppercase().replace('-', "_")
+            );
+            cmd.env(&env_var, linker_path);
+
+            if options.verbose {
+                helpers::info(format!("Setting {}={}", env_var, linker_path));
+            }
+        }
+
+        // Add custom environment variables from target config
+        if let Some(config) = target_config {
+            for (key, value) in &config.env {
+                cmd.env(key, value);
+                if options.verbose {
+                    helpers::info(format!("Setting {}={}", key, value));
+                }
+            }
+
+            // Add custom rustflags if specified
+            if let Some(ref rustflags) = config.rustflags {
+                let rustflags_str = rustflags.join(" ");
+                cmd.env("RUSTFLAGS", &rustflags_str);
+                if options.verbose {
+                    helpers::info(format!("Setting RUSTFLAGS={}", rustflags_str));
+                }
+            }
+        }
 
         // Add toolchain override if specified
         if options.toolchain.is_some() {
@@ -210,8 +270,69 @@ impl Builder {
                 helpers::tip(format!("Test Windows binaries with Wine: wine target/{}/debug/your-app.exe", target.triple));
             }
 
+            if target.os == "linux" && Target::detect_host()?.os != "linux" {
+                helpers::tip("Consider using a Linux VM or container to test the binary".to_string());
+            }
+
             Ok(())
         } else {
+            println!();
+            helpers::error(format!("Build failed for target {}", target.triple));
+
+            // Provide helpful error context
+            if linker.is_none() {
+                let requirements = target.get_requirements();
+                if let Some(suggested_linker) = requirements.linker {
+                    println!();
+                    helpers::hint("This target requires a cross-compilation linker");
+                    helpers::tip(format!("Install the linker: {}", suggested_linker));
+                    helpers::tip(format!("Then configure it in xcargo.toml:"));
+                    println!("\n  [targets.\"{}\"]", target.triple);
+                    println!("  linker = \"{}\"", suggested_linker);
+
+                    if !requirements.tools.is_empty() {
+                        println!();
+                        helpers::hint(format!("Additional required tools: {}", requirements.tools.join(", ")));
+                    }
+
+                    // Provide OS-specific installation instructions
+                    let host_os = Target::detect_host()?.os;
+                    println!();
+                    helpers::section("Installation Instructions");
+
+                    match (host_os.as_str(), target.os.as_str()) {
+                        ("macos", "linux") => {
+                            helpers::tip("Install via Homebrew: brew install SomeLinuxCrossCompiler".to_string());
+                            helpers::tip("Or use a container-based build (coming soon)".to_string());
+                        }
+                        ("macos", "windows") => {
+                            helpers::tip("Install via Homebrew: brew install mingw-w64".to_string());
+                            helpers::tip("Then set: [targets.\"x86_64-pc-windows-gnu\"] linker = \"x86_64-w64-mingw32-gcc\"".to_string());
+                        }
+                        ("linux", "windows") => {
+                            helpers::tip("Install via package manager: sudo apt install mingw-w64".to_string());
+                            helpers::tip("Then set: [targets.\"x86_64-pc-windows-gnu\"] linker = \"x86_64-w64-mingw32-gcc\"".to_string());
+                        }
+                        ("linux", "macos") => {
+                            helpers::tip("macOS cross-compilation from Linux requires osxcross".to_string());
+                            helpers::tip("See: https://github.com/tpoechtrager/osxcross".to_string());
+                        }
+                        (_, _) => {
+                            helpers::tip(format!("Cross-compiling from {} to {} may require specific toolchains", host_os, target.os));
+                        }
+                    }
+                }
+            } else if let Some(ref linker_path) = linker {
+                if which::which(linker_path).is_err() {
+                    println!();
+                    helpers::hint(format!("The configured linker '{}' is not in your PATH", linker_path));
+                    helpers::tip(format!("Install it or update your xcargo.toml configuration"));
+                }
+            }
+
+            println!();
+            helpers::tip("Run with --verbose to see detailed error output".to_string());
+
             Err(Error::Build(format!(
                 "Build failed for target {}",
                 target.triple

@@ -1,8 +1,21 @@
 [targets]
 default = [
-    "x86_64-unknown-linux-gnu",
     "aarch64-apple-darwin",
 ]
+
+[targets."x86_64-unknown-linux-gnu"]
+linker = "x86_64-linux-gnu-gcc"
+
+[targets."x86_64-unknown-linux-gnu".env]
+CC = "x86_64-linux-gnu-gcc"
+AR = "x86_64-linux-gnu-ar"
+
+[targets."x86_64-pc-windows-gnu"]
+linker = "x86_64-w64-mingw32-gcc"
+
+[targets."x86_64-pc-windows-gnu".env]
+CC = "x86_64-w64-mingw32-gcc"
+AR = "x86_64-w64-mingw32-ar"
 
 [build]
 parallel = true
