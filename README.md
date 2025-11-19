@@ -71,7 +71,7 @@ wget https://github.com/ibrahimcesar/xcargo/releases/download/v0.2.0/xcargo-linu
 wget https://github.com/ibrahimcesar/xcargo/releases/download/v0.2.0/xcargo-linux-x86_64.sha256
 
 # Verify signature
-minisign -Vm xcargo-linux-x86_64 -P RWT6G8c7kW8bF3zo7Y8xJ0y0N5xQfZ7LqHXJ8vxJXnC9kK5pLz8kLW8p
+minisign -Vm xcargo-linux-x86_64 -P RWRzZS/Coz8XEj1XGXl9P93QnWHHSkqBfByJoX7tTXRJBUMLxR10WbW6
 
 # Verify checksum
 sha256sum -c xcargo-linux-x86_64.sha256
@@ -79,10 +79,8 @@ sha256sum -c xcargo-linux-x86_64.sha256
 
 **xcargo minisign public key:**
 ```
-RWT6G8c7kW8bF3zo7Y8xJ0y0N5xQfZ7LqHXJ8vxJXnC9kK5pLz8kLW8p
+RWRzZS/Coz8XEj1XGXl9P93QnWHHSkqBfByJoX7tTXRJBUMLxR10WbW6
 ```
-
-> **Note:** The public key above is a placeholder. After generating the actual key pair, update this with the real public key from `xcargo.pub`.
 
 ### Interactive Setup
 
