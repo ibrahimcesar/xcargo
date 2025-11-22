@@ -2,9 +2,9 @@
 //!
 //! This module handles finding xcargo.toml files in the filesystem
 
+use crate::error::Result;
 use std::env;
 use std::path::PathBuf;
-use crate::error::Result;
 
 /// Configuration file discovery utility
 pub struct ConfigDiscovery;
@@ -79,8 +79,7 @@ mod tests {
         fs::write(&config_path, "[targets]\n").unwrap();
 
         // Find from temp directory
-        let found = ConfigDiscovery::find_from(temp.path().to_path_buf())
-            .unwrap();
+        let found = ConfigDiscovery::find_from(temp.path().to_path_buf()).unwrap();
 
         assert!(found.is_some());
         assert_eq!(found.unwrap(), config_path);
@@ -110,8 +109,7 @@ mod tests {
         let temp = TempDir::new().unwrap();
 
         // No config file exists
-        let found = ConfigDiscovery::find_from(temp.path().to_path_buf())
-            .unwrap();
+        let found = ConfigDiscovery::find_from(temp.path().to_path_buf()).unwrap();
 
         assert!(found.is_none());
     }

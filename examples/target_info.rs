@@ -2,8 +2,8 @@
 //!
 //! Run with: cargo run --example target_info
 
-use xcargo::prelude::*;
 use colored::Colorize;
+use xcargo::prelude::*;
 
 fn main() -> Result<()> {
     println!("{}", "🎯 xcargo - Target Information".bold().cyan());
@@ -68,7 +68,10 @@ fn main() -> Result<()> {
         } else if reqs.are_satisfied() {
             println!("  Status: {} Tools available", "✅".green());
         } else {
-            println!("  Status: {} Container build or install tools", "⚠️".yellow());
+            println!(
+                "  Status: {} Container build or install tools",
+                "⚠️".yellow()
+            );
         }
 
         println!();
@@ -84,7 +87,8 @@ fn main() -> Result<()> {
             println!("  {}", instruction);
         }
     } else {
-        println!("\n{} {} is ready to use!",
+        println!(
+            "\n{} {} is ready to use!",
             "✅".green(),
             arm_target.triple.green()
         );

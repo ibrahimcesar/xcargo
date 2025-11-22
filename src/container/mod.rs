@@ -5,11 +5,11 @@
 
 use crate::error::{Error, Result};
 
-mod runtime;
 mod images;
+mod runtime;
 
+pub use images::{CrossImage, ImageSelector};
 pub use runtime::{ContainerRuntime, RuntimeType};
-pub use images::{ImageSelector, CrossImage};
 
 /// Container build configuration
 #[derive(Debug, Clone)]
@@ -61,11 +61,13 @@ impl ContainerBuilder {
     }
 
     /// Check if the container runtime is available
+    #[must_use] 
     pub fn is_available(&self) -> bool {
         self.runtime.is_available()
     }
 
     /// Get the runtime name
+    #[must_use] 
     pub fn runtime_name(&self) -> &str {
         self.runtime.name()
     }
@@ -105,13 +107,13 @@ impl ContainerBuilder {
 
         // Add current directory as volume
         let current_dir = std::env::current_dir()
-            .map_err(|e| Error::Container(format!("Failed to get current directory: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to get current directory: {e}")))?;
         let current_dir_str = current_dir.to_string_lossy().to_string();
         volumes.push((current_dir_str.clone(), config.workdir.clone()));
 
         // Add cargo cache volume for faster builds
         if let Ok(home) = std::env::var("HOME") {
-            let cargo_cache = format!("{}/.cargo", home);
+            let cargo_cache = format!("{home}/.cargo");
             volumes.push((cargo_cache, "/root/.cargo".to_string()));
         }
 
@@ -122,13 +124,8 @@ impl ContainerBuilder {
         cmd.extend_from_slice(cargo_args);
 
         // Run in container
-        self.runtime.run(
-            &image,
-            &cmd,
-            &volumes,
-            &config.env,
-            &config.workdir,
-        )
+        self.runtime
+            .run(&image, &cmd, &volumes, &config.env, &config.workdir)
     }
 }
 

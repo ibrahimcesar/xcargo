@@ -165,7 +165,8 @@ name = "test-project"
 version = "0.1.0"
 edition = "2021"
 "#,
-    ).unwrap();
+    )
+    .unwrap();
 
     xcargo()
         .current_dir(temp_dir.path())
@@ -234,18 +235,12 @@ fn test_check_conflicting_args() {
 
 #[test]
 fn test_exit_code_success() {
-    xcargo()
-        .arg("version")
-        .assert()
-        .code(0);
+    xcargo().arg("version").assert().code(0);
 }
 
 #[test]
 fn test_exit_code_invalid_command() {
-    xcargo()
-        .arg("nonexistent-command")
-        .assert()
-        .failure();
+    xcargo().arg("nonexistent-command").assert().failure();
 }
 
 // ============================================================================
@@ -254,16 +249,10 @@ fn test_exit_code_invalid_command() {
 
 #[test]
 fn test_verbose_flag_global() {
-    xcargo()
-        .args(["-v", "version"])
-        .assert()
-        .success();
+    xcargo().args(["-v", "version"]).assert().success();
 }
 
 #[test]
 fn test_verbose_flag_long() {
-    xcargo()
-        .args(["--verbose", "version"])
-        .assert()
-        .success();
+    xcargo().args(["--verbose", "version"]).assert().success();
 }

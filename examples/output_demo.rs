@@ -56,7 +56,7 @@ fn main() {
 
     let msg = Message::new(
         MessageType::Tip,
-        "You can create custom messages with the Message API"
+        "You can create custom messages with the Message API",
     );
     msg.print();
 

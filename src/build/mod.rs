@@ -29,6 +29,7 @@ pub enum CargoOperation {
 
 impl CargoOperation {
     /// Get the cargo subcommand name
+    #[must_use] 
     pub fn as_str(&self) -> &'static str {
         match self {
             CargoOperation::Build => "build",
@@ -38,6 +39,7 @@ impl CargoOperation {
     }
 
     /// Get a human-readable description
+    #[must_use] 
     pub fn description(&self) -> &'static str {
         match self {
             CargoOperation::Build => "Building",
@@ -166,7 +168,9 @@ impl Builder {
         let target_triple = if let Some(target) = &options.target {
             target.clone()
         } else if let Some(default_target) = self.config.targets.default.first() {
-            helpers::info(format!("Using default target from config: {}", default_target));
+            helpers::info(format!(
+                "Using default target from config: {default_target}"
+            ));
             default_target.clone()
         } else {
             let host = Target::detect_host()?;
@@ -176,11 +180,15 @@ impl Builder {
 
         // Parse target
         let target = Target::from_triple(&target_triple)?;
-        helpers::progress(format!("{} for target: {}", options.operation.description(), target.triple));
+        helpers::progress(format!(
+            "{} for target: {}",
+            options.operation.description(),
+            target.triple
+        ));
 
         // Check if we should use container build
-        let should_use_container = options.use_container ||
-            self.should_use_container_for_target(&target)?;
+        let should_use_container =
+            options.use_container || self.should_use_container_for_target(&target)?;
 
         if should_use_container {
             return self.build_with_container(&target, options);
@@ -198,7 +206,7 @@ impl Builder {
         };
 
         // Ensure target is installed
-        helpers::progress(format!("Checking toolchain and target..."));
+        helpers::progress("Checking toolchain and target...".to_string());
         self.toolchain_manager.prepare_target(&toolchain, &target)?;
         helpers::success("Toolchain and target ready");
 
@@ -224,32 +232,38 @@ impl Builder {
             config.linker.clone()
         } else {
             let requirements = target.get_requirements();
-            requirements.linker.map(|s| s.to_string())
+            requirements.linker
         };
 
         // Verify linker exists if specified (and not using Zig)
         if !using_zig {
             if let Some(ref linker_path) = linker {
-                match which::which(linker_path) {
-                    Ok(path) => {
-                        if options.verbose {
-                            helpers::info(format!("Using linker: {} ({})", linker_path, path.display()));
-                        }
+                if let Ok(path) = which::which(linker_path) {
+                    if options.verbose {
+                        helpers::info(format!(
+                            "Using linker: {} ({})",
+                            linker_path,
+                            path.display()
+                        ));
                     }
-                    Err(_) => {
-                        helpers::warning(format!("Configured linker '{}' not found in PATH", linker_path));
+                } else {
+                    helpers::warning(format!(
+                        "Configured linker '{linker_path}' not found in PATH"
+                    ));
 
-                        let requirements = target.get_requirements();
-                        if !requirements.tools.is_empty() {
-                            helpers::hint(format!("Required tools: {}", requirements.tools.join(", ")));
-                        }
-
-                        // Suggest platform-specific installation
-                        let host = Target::detect_host()?;
-                        self.suggest_linker_installation(&host, &target);
-
-                        helpers::tip("The build may fail if the linker is not available");
+                    let requirements = target.get_requirements();
+                    if !requirements.tools.is_empty() {
+                        helpers::hint(format!(
+                            "Required tools: {}",
+                            requirements.tools.join(", ")
+                        ));
                     }
+
+                    // Suggest platform-specific installation
+                    let host = Target::detect_host()?;
+                    self.suggest_linker_installation(&host, &target);
+
+                    helpers::tip("The build may fail if the linker is not available");
                 }
             } else {
                 // No linker configured - check if one is recommended
@@ -258,10 +272,12 @@ impl Builder {
                     // Check if the suggested linker is available
                     if which::which(&suggested_linker).is_ok() {
                         if options.verbose {
-                            helpers::info(format!("Using default linker: {}", suggested_linker));
+                            helpers::info(format!("Using default linker: {suggested_linker}"));
                         }
                     } else {
-                        helpers::hint(format!("Recommended linker '{}' not found", suggested_linker));
+                        helpers::hint(format!(
+                            "Recommended linker '{suggested_linker}' not found"
+                        ));
 
                         let host = Target::detect_host()?;
                         self.suggest_linker_installation(&host, &target);
@@ -301,7 +317,7 @@ impl Builder {
                 cmd.env(&env_var, linker_path);
 
                 if options.verbose {
-                    helpers::info(format!("Setting {}={}", env_var, linker_path));
+                    helpers::info(format!("Setting {env_var}={linker_path}"));
                 }
             }
         }
@@ -311,7 +327,7 @@ impl Builder {
             for (key, value) in &config.env {
                 cmd.env(key, value);
                 if options.verbose {
-                    helpers::info(format!("Setting {}={}", key, value));
+                    helpers::info(format!("Setting {key}={value}"));
                 }
             }
 
@@ -320,14 +336,14 @@ impl Builder {
                 let rustflags_str = rustflags.join(" ");
                 cmd.env("RUSTFLAGS", &rustflags_str);
                 if options.verbose {
-                    helpers::info(format!("Setting RUSTFLAGS={}", rustflags_str));
+                    helpers::info(format!("Setting RUSTFLAGS={rustflags_str}"));
                 }
             }
         }
 
         // Add toolchain override if specified
         if options.toolchain.is_some() {
-            cmd.arg(format!("+{}", toolchain));
+            cmd.arg(format!("+{toolchain}"));
         }
 
         cmd.arg(options.operation.as_str());
@@ -341,7 +357,13 @@ impl Builder {
         }
 
         // Add verbose flag
-        if options.verbose || self.config.build.cargo_flags.contains(&"--verbose".to_string()) {
+        if options.verbose
+            || self
+                .config
+                .build
+                .cargo_flags
+                .contains(&"--verbose".to_string())
+        {
             cmd.arg("--verbose");
         }
 
@@ -358,39 +380,59 @@ impl Builder {
         }
 
         if options.verbose {
-            helpers::info(format!("Executing: {:?}", cmd));
+            helpers::info(format!("Executing: {cmd:?}"));
         }
 
         // Execute build
-        let status = cmd.status()
-            .map_err(|e| Error::Build(format!("Failed to execute cargo: {}", e)))?;
+        let status = cmd
+            .status()
+            .map_err(|e| Error::Build(format!("Failed to execute cargo: {e}")))?;
 
         if status.success() {
             println!(); // Empty line for spacing
-            helpers::success(format!("{} completed for {}", options.operation.description(), target.triple));
+            helpers::success(format!(
+                "{} completed for {}",
+                options.operation.description(),
+                target.triple
+            ));
 
             // Show helpful tips (only for build/test, not check)
             if options.operation != CargoOperation::Check {
                 if options.release {
-                    helpers::tip(format!("Release build artifacts are in target/{}/release/", target.triple));
+                    helpers::tip(format!(
+                        "Release build artifacts are in target/{}/release/",
+                        target.triple
+                    ));
                 } else {
-                    helpers::tip(format!("Debug build artifacts are in target/{}/debug/", target.triple));
+                    helpers::tip(format!(
+                        "Debug build artifacts are in target/{}/debug/",
+                        target.triple
+                    ));
                 }
 
                 // Additional tips based on target
                 if target.os == "windows" && Target::detect_host()?.os != "windows" {
-                    helpers::tip(format!("Test Windows binaries with Wine: wine target/{}/debug/your-app.exe", target.triple));
+                    helpers::tip(format!(
+                        "Test Windows binaries with Wine: wine target/{}/debug/your-app.exe",
+                        target.triple
+                    ));
                 }
 
                 if target.os == "linux" && Target::detect_host()?.os != "linux" {
-                    helpers::tip("Consider using a Linux VM or container to test the binary".to_string());
+                    helpers::tip(
+                        "Consider using a Linux VM or container to test the binary".to_string(),
+                    );
                 }
             }
 
             Ok(())
         } else {
             println!();
-            helpers::error(format!("{} failed for target {}", options.operation.description(), target.triple));
+            helpers::error(format!(
+                "{} failed for target {}",
+                options.operation.description(),
+                target.triple
+            ));
 
             // Provide helpful error context
             if linker.is_none() {
@@ -398,14 +440,17 @@ impl Builder {
                 if let Some(suggested_linker) = requirements.linker {
                     println!();
                     helpers::hint("This target requires a cross-compilation linker");
-                    helpers::tip(format!("Install the linker: {}", suggested_linker));
-                    helpers::tip(format!("Then configure it in xcargo.toml:"));
+                    helpers::tip(format!("Install the linker: {suggested_linker}"));
+                    helpers::tip("Then configure it in xcargo.toml:".to_string());
                     println!("\n  [targets.\"{}\"]", target.triple);
-                    println!("  linker = \"{}\"", suggested_linker);
+                    println!("  linker = \"{suggested_linker}\"");
 
                     if !requirements.tools.is_empty() {
                         println!();
-                        helpers::hint(format!("Additional required tools: {}", requirements.tools.join(", ")));
+                        helpers::hint(format!(
+                            "Additional required tools: {}",
+                            requirements.tools.join(", ")
+                        ));
                     }
 
                     // Provide OS-specific installation instructions
@@ -415,31 +460,50 @@ impl Builder {
 
                     match (host_os.as_str(), target.os.as_str()) {
                         ("macos", "linux") => {
-                            helpers::tip("Install via Homebrew: brew install SomeLinuxCrossCompiler".to_string());
-                            helpers::tip("Or use a container-based build (coming soon)".to_string());
+                            helpers::tip(
+                                "Install via Homebrew: brew install SomeLinuxCrossCompiler"
+                                    .to_string(),
+                            );
+                            helpers::tip(
+                                "Or use a container-based build (coming soon)".to_string(),
+                            );
                         }
                         ("macos", "windows") => {
-                            helpers::tip("Install via Homebrew: brew install mingw-w64".to_string());
+                            helpers::tip(
+                                "Install via Homebrew: brew install mingw-w64".to_string(),
+                            );
                             helpers::tip("Then set: [targets.\"x86_64-pc-windows-gnu\"] linker = \"x86_64-w64-mingw32-gcc\"".to_string());
                         }
                         ("linux", "windows") => {
-                            helpers::tip("Install via package manager: sudo apt install mingw-w64".to_string());
+                            helpers::tip(
+                                "Install via package manager: sudo apt install mingw-w64"
+                                    .to_string(),
+                            );
                             helpers::tip("Then set: [targets.\"x86_64-pc-windows-gnu\"] linker = \"x86_64-w64-mingw32-gcc\"".to_string());
                         }
                         ("linux", "macos") => {
-                            helpers::tip("macOS cross-compilation from Linux requires osxcross".to_string());
-                            helpers::tip("See: https://github.com/tpoechtrager/osxcross".to_string());
+                            helpers::tip(
+                                "macOS cross-compilation from Linux requires osxcross".to_string(),
+                            );
+                            helpers::tip(
+                                "See: https://github.com/tpoechtrager/osxcross".to_string(),
+                            );
                         }
                         (_, _) => {
-                            helpers::tip(format!("Cross-compiling from {} to {} may require specific toolchains", host_os, target.os));
+                            helpers::tip(format!(
+                                "Cross-compiling from {} to {} may require specific toolchains",
+                                host_os, target.os
+                            ));
                         }
                     }
                 }
             } else if let Some(ref linker_path) = linker {
                 if which::which(linker_path).is_err() {
                     println!();
-                    helpers::hint(format!("The configured linker '{}' is not in your PATH", linker_path));
-                    helpers::tip(format!("Install it or update your xcargo.toml configuration"));
+                    helpers::hint(format!(
+                        "The configured linker '{linker_path}' is not in your PATH"
+                    ));
+                    helpers::tip("Install it or update your xcargo.toml configuration".to_string());
                 }
             }
 
@@ -456,8 +520,15 @@ impl Builder {
 
     /// Build for multiple targets (sequential)
     pub fn build_all(&self, targets: &[String], options: &BuildOptions) -> Result<()> {
-        helpers::section(format!("xcargo {} (multiple targets)", options.operation.as_str()));
-        helpers::info(format!("{} for {} targets", options.operation.description(), targets.len()));
+        helpers::section(format!(
+            "xcargo {} (multiple targets)",
+            options.operation.as_str()
+        ));
+        helpers::info(format!(
+            "{} for {} targets",
+            options.operation.description(),
+            targets.len()
+        ));
 
         let mut successes = Vec::new();
         let mut failures = Vec::new();
@@ -472,7 +543,7 @@ impl Builder {
             match self.build(&target_options) {
                 Ok(()) => successes.push(target.clone()),
                 Err(e) => {
-                    helpers::error(format!("Failed to build {}: {}", target, e));
+                    helpers::error(format!("Failed to build {target}: {e}"));
                     failures.push(target.clone());
                 }
             }
@@ -485,7 +556,7 @@ impl Builder {
         if !failures.is_empty() {
             helpers::error(format!("{} target(s) failed", failures.len()));
             for target in &failures {
-                helpers::error(format!("  - {}", target));
+                helpers::error(format!("  - {target}"));
             }
             return Err(Error::Build("Some targets failed to build".to_string()));
         }
@@ -495,9 +566,17 @@ impl Builder {
     }
 
     /// Build for multiple targets in parallel
-    pub async fn build_all_parallel(&self, targets: &[String], options: &BuildOptions) -> Result<()> {
+    pub async fn build_all_parallel(
+        &self,
+        targets: &[String],
+        options: &BuildOptions,
+    ) -> Result<()> {
         helpers::section(format!("xcargo {} (parallel)", options.operation.as_str()));
-        helpers::info(format!("{} for {} targets in parallel", options.operation.description(), targets.len()));
+        helpers::info(format!(
+            "{} for {} targets in parallel",
+            options.operation.description(),
+            targets.len()
+        ));
 
         let successes = Arc::new(Mutex::new(Vec::new()));
         let failures = Arc::new(Mutex::new(Vec::new()));
@@ -522,7 +601,7 @@ impl Builder {
                     Err(e) => {
                         let mut failures = failures.lock().unwrap();
                         failures.push(target.clone());
-                        eprintln!("Failed to create builder for {}: {}", target, e);
+                        eprintln!("Failed to create builder for {target}: {e}");
                         return;
                     }
                 };
@@ -535,7 +614,7 @@ impl Builder {
                     Err(e) => {
                         let mut failures = failures.lock().unwrap();
                         failures.push(target.clone());
-                        eprintln!("Failed to build {}: {}", target, e);
+                        eprintln!("Failed to build {target}: {e}");
                     }
                 }
             });
@@ -545,7 +624,9 @@ impl Builder {
 
         // Wait for all builds to complete
         for handle in handles {
-            handle.await.map_err(|e| Error::Build(format!("Task join error: {}", e)))?;
+            handle
+                .await
+                .map_err(|e| Error::Build(format!("Task join error: {e}")))?;
         }
 
         let successes = successes.lock().unwrap();
@@ -558,7 +639,7 @@ impl Builder {
         if !failures.is_empty() {
             helpers::error(format!("{} target(s) failed", failures.len()));
             for target in failures.iter() {
-                helpers::error(format!("  - {}", target));
+                helpers::error(format!("  - {target}"));
             }
             return Err(Error::Build("Some targets failed to build".to_string()));
         }
@@ -570,7 +651,11 @@ impl Builder {
     ///
     /// Returns Some(env) if Zig can handle this cross-compilation, None otherwise.
     /// Respects the `use_zig` option: None = auto, Some(true) = force, Some(false) = disable
-    fn try_zig_cross_compilation(&self, target: &Target, options: &BuildOptions) -> Result<Option<HashMap<String, PathBuf>>> {
+    fn try_zig_cross_compilation(
+        &self,
+        target: &Target,
+        options: &BuildOptions,
+    ) -> Result<Option<HashMap<String, PathBuf>>> {
         // Check if Zig is explicitly disabled
         if options.use_zig == Some(false) {
             if options.verbose {
@@ -594,7 +679,10 @@ impl Builder {
         // Check if Zig is available and supports this target
         if let Some(ref zig) = self.zig_toolchain {
             if zig.supports_target(target) {
-                helpers::info(format!("Zig {} detected, using for cross-compilation", zig.version()));
+                helpers::info(format!(
+                    "Zig {} detected, using for cross-compilation",
+                    zig.version()
+                ));
                 let env = zig.environment_for_target(target)?;
                 return Ok(Some(env));
             } else if force_zig {
@@ -602,11 +690,13 @@ impl Builder {
                     "Zig does not support target '{}'. Supported targets: x86_64-linux-gnu, aarch64-linux-gnu, armv7-linux-gnueabihf",
                     target.triple
                 )));
-            } else {
-                // Zig available but doesn't support this target - not an error in auto mode
-                if options.verbose {
-                    helpers::info(format!("Zig doesn't support target '{}', falling back to native toolchain", target.triple));
-                }
+            }
+            // Zig available but doesn't support this target - not an error in auto mode
+            if options.verbose {
+                helpers::info(format!(
+                    "Zig doesn't support target '{}', falling back to native toolchain",
+                    target.triple
+                ));
             }
         } else {
             // Zig not available
@@ -623,7 +713,7 @@ impl Builder {
                     "windows" => "Install with: scoop install zig",
                     _ => "Install Zig: https://ziglang.org/download/",
                 };
-                helpers::tip(format!("{} (then use --zig flag)", install_hint));
+                helpers::tip(format!("{install_hint} (then use --zig flag)"));
             }
         }
 
@@ -637,8 +727,13 @@ impl Builder {
 
         match (host_os, target_os) {
             ("macos", "linux") => {
-                helpers::tip("For Linux cross-compilation on macOS, consider using Zig: brew install zig");
-                helpers::tip(format!("Then build with: xcargo build --target {} --zig", target.triple));
+                helpers::tip(
+                    "For Linux cross-compilation on macOS, consider using Zig: brew install zig",
+                );
+                helpers::tip(format!(
+                    "Then build with: xcargo build --target {} --zig",
+                    target.triple
+                ));
             }
             ("macos", "windows") => {
                 helpers::tip("Install MinGW for Windows cross-compilation: brew install mingw-w64");
@@ -651,16 +746,20 @@ impl Builder {
                 helpers::tip("macOS cross-compilation requires osxcross: https://github.com/tpoechtrager/osxcross");
             }
             ("windows", "linux") => {
-                helpers::tip("For Linux cross-compilation on Windows, consider using WSL or containers");
+                helpers::tip(
+                    "For Linux cross-compilation on Windows, consider using WSL or containers",
+                );
             }
             (_, _) => {
-                helpers::tip(format!("Install cross-compilation tools for {} → {}", host_os, target_os));
+                helpers::tip(format!(
+                    "Install cross-compilation tools for {host_os} → {target_os}"
+                ));
             }
         }
     }
 
     /// Determine if a container build should be used for this target
-    fn should_use_container_for_target(&self, _target: &Target) -> Result<bool> {
+    fn should_use_container_for_target(&self, target: &Target) -> Result<bool> {
         #[cfg(not(feature = "container"))]
         {
             return Ok(false);
@@ -689,13 +788,13 @@ impl Builder {
         helpers::info(format!("Building {} using container", target.triple));
 
         // Determine runtime type from config
-        let runtime_type = RuntimeType::from_str(&self.config.container.runtime)
-            .unwrap_or(RuntimeType::Auto);
+        let runtime_type =
+            RuntimeType::from_str(&self.config.container.runtime).unwrap_or(RuntimeType::Auto);
 
         // Create container builder
         let container_builder = ContainerBuilder::new(runtime_type)
             .map_err(|e| {
-                helpers::error(format!("Failed to initialize container runtime: {}", e));
+                helpers::error(format!("Failed to initialize container runtime: {e}"));
                 helpers::hint("Make sure Docker or Podman is installed and running");
 
                 let host_os = Target::detect_host().ok().map(|h| h.os).unwrap_or_default();
@@ -721,17 +820,26 @@ impl Builder {
             })?;
 
         if !container_builder.is_available() {
-            helpers::error(format!("Container runtime '{}' is not available", container_builder.runtime_name()));
+            helpers::error(format!(
+                "Container runtime '{}' is not available",
+                container_builder.runtime_name()
+            ));
             helpers::hint("Make sure the container runtime is installed and running");
-            return Err(Error::Container("Container runtime not available".to_string()));
+            return Err(Error::Container(
+                "Container runtime not available".to_string(),
+            ));
         }
 
-        helpers::success(format!("Using container runtime: {}", container_builder.runtime_name()));
+        helpers::success(format!(
+            "Using container runtime: {}",
+            container_builder.runtime_name()
+        ));
 
         // Select appropriate image
-        let image = container_builder.select_image(&target.triple)
+        let image = container_builder
+            .select_image(&target.triple)
             .map_err(|e| {
-                helpers::error(format!("Failed to select container image: {}", e));
+                helpers::error(format!("Failed to select container image: {e}"));
 
                 // Suggest alternatives based on the error
                 if target.os == "macos" {
@@ -780,9 +888,15 @@ impl Builder {
 
         // Show helpful tips
         if options.release {
-            helpers::tip(format!("Release build artifacts are in target/{}/release/", target.triple));
+            helpers::tip(format!(
+                "Release build artifacts are in target/{}/release/",
+                target.triple
+            ));
         } else {
-            helpers::tip(format!("Debug build artifacts are in target/{}/debug/", target.triple));
+            helpers::tip(format!(
+                "Debug build artifacts are in target/{}/debug/",
+                target.triple
+            ));
         }
 
         Ok(())
@@ -794,7 +908,9 @@ impl Builder {
         helpers::error("Container support not enabled");
         helpers::hint("Rebuild xcargo with: cargo install xcargo --features container");
         helpers::tip("Or use native build without --container flag");
-        Err(Error::Container("Container feature not enabled".to_string()))
+        Err(Error::Container(
+            "Container feature not enabled".to_string(),
+        ))
     }
 }
 

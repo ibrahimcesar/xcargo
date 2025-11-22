@@ -3,9 +3,9 @@
 //! This module provides types and functions for working with Rust target triples,
 //! detecting available targets, and validating target configurations.
 
+use crate::error::{Error, Result};
 use std::fmt;
 use std::process::Command;
-use crate::error::{Error, Result};
 
 /// Represents the requirements needed to build for a target
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +22,7 @@ pub struct TargetRequirements {
 
 impl TargetRequirements {
     /// Create empty requirements
+    #[must_use] 
     pub fn none() -> Self {
         Self {
             linker: None,
@@ -32,6 +33,7 @@ impl TargetRequirements {
     }
 
     /// Check if all requirements are satisfied
+    #[must_use] 
     pub fn are_satisfied(&self) -> bool {
         // Check if linker is available
         if let Some(ref linker) = self.linker {
@@ -61,7 +63,7 @@ impl TargetRequirements {
 pub struct Target {
     /// The full target triple (e.g., "x86_64-unknown-linux-gnu")
     pub triple: String,
-    /// Target architecture (e.g., "x86_64", "aarch64")
+    /// Target architecture (e.g., "`x86_64`", "aarch64")
     pub arch: String,
     /// Target vendor (e.g., "unknown", "apple", "pc")
     pub vendor: String,
@@ -104,8 +106,7 @@ impl Target {
 
         if parts.len() < 3 {
             return Err(Error::TargetNotFound(format!(
-                "Invalid target triple: {}. Expected format: arch-vendor-os[-env]",
-                triple
+                "Invalid target triple: {triple}. Expected format: arch-vendor-os[-env]"
             )));
         }
 
@@ -148,12 +149,10 @@ impl Target {
         let output = Command::new("rustc")
             .args(["-vV"])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to run rustc: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to run rustc: {e}")))?;
 
         if !output.status.success() {
-            return Err(Error::Toolchain(
-                "rustc command failed".to_string()
-            ));
+            return Err(Error::Toolchain("rustc command failed".to_string()));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -166,7 +165,7 @@ impl Target {
         }
 
         Err(Error::Toolchain(
-            "Could not detect host target from rustc".to_string()
+            "Could not detect host target from rustc".to_string(),
         ))
     }
 
@@ -189,11 +188,11 @@ impl Target {
         let output = Command::new("rustup")
             .args(["target", "list", "--installed"])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to run rustup: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to run rustup: {e}")))?;
 
         if !output.status.success() {
             return Err(Error::Toolchain(
-                "rustup target list command failed".to_string()
+                "rustup target list command failed".to_string(),
             ));
         }
 
@@ -229,11 +228,11 @@ impl Target {
         let output = Command::new("rustup")
             .args(["target", "list"])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to run rustup: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to run rustup: {e}")))?;
 
         if !output.status.success() {
             return Err(Error::Toolchain(
-                "rustup target list command failed".to_string()
+                "rustup target list command failed".to_string(),
             ));
         }
 
@@ -268,7 +267,7 @@ impl Target {
         let output = Command::new("rustup")
             .args(["target", "add", &self.triple])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to run rustup: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to run rustup: {e}")))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -367,7 +366,8 @@ impl Target {
             || triple.contains("ios")
             || triple.starts_with("wasm")
             || triple.starts_with("thumb")
-            || triple.starts_with("riscv") {
+            || triple.starts_with("riscv")
+        {
             return TargetTier::Specialized;
         }
 
@@ -376,11 +376,13 @@ impl Target {
     }
 
     /// Check if native compilation is likely possible for this target
+    #[must_use] 
     pub fn supports_native_build(&self) -> bool {
         matches!(self.tier, TargetTier::Native)
     }
 
     /// Check if this target requires container-based compilation
+    #[must_use] 
     pub fn requires_container(&self) -> bool {
         matches!(self.tier, TargetTier::Container | TargetTier::Specialized)
     }
@@ -401,6 +403,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use] 
     pub fn get_requirements(&self) -> TargetRequirements {
         let mut reqs = TargetRequirements::none();
 
@@ -441,7 +444,10 @@ impl Target {
             // Android targets
             ("android", _, _) => {
                 reqs.tools.push("ndk-build".to_string());
-                reqs.env_vars.push(("ANDROID_NDK_HOME".to_string(), "$ANDROID_NDK_HOME".to_string()));
+                reqs.env_vars.push((
+                    "ANDROID_NDK_HOME".to_string(),
+                    "$ANDROID_NDK_HOME".to_string(),
+                ));
             }
 
             // iOS targets
@@ -479,6 +485,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use] 
     pub fn detect_linker(&self) -> Option<String> {
         let reqs = self.get_requirements();
 
@@ -528,6 +535,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use] 
     pub fn can_cross_compile_from(&self, host: &Target) -> bool {
         // Same target - can always build
         if self.triple == host.triple {
@@ -560,6 +568,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use] 
     pub fn get_install_instructions(&self) -> Vec<String> {
         let mut instructions = Vec::new();
         let reqs = self.get_requirements();
@@ -602,7 +611,9 @@ impl Target {
             }
             ("android", _, _) => {
                 instructions.push("# Install Android NDK:".to_string());
-                instructions.push("# Download from: https://developer.android.com/ndk/downloads".to_string());
+                instructions.push(
+                    "# Download from: https://developer.android.com/ndk/downloads".to_string(),
+                );
                 instructions.push("export ANDROID_NDK_HOME=/path/to/ndk".to_string());
             }
             ("ios", _, "macos") => {
@@ -732,7 +743,7 @@ mod tests {
     #[test]
     fn test_target_display() {
         let target = Target::from_triple("x86_64-unknown-linux-gnu").unwrap();
-        assert_eq!(format!("{}", target), "x86_64-unknown-linux-gnu");
+        assert_eq!(format!("{target}"), "x86_64-unknown-linux-gnu");
     }
 
     #[test]

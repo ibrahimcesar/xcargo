@@ -3,7 +3,6 @@
 //! This module handles Rust toolchain detection, installation, and management
 //! through rustup integration.
 
-
 pub mod zig;
 use crate::error::{Error, Result};
 use crate::target::Target;
@@ -53,13 +52,16 @@ impl ToolchainManager {
         let output = Command::new("rustup")
             .arg("--version")
             .output()
-            .map_err(|e| Error::Toolchain(format!(
-                "rustup not found. Please install rustup from https://rustup.rs/. Error: {}", e
-            )))?;
+            .map_err(|e| {
+                Error::Toolchain(format!(
+                    "rustup not found. Please install rustup from https://rustup.rs/. Error: {e}"
+                ))
+            })?;
 
         if !output.status.success() {
             return Err(Error::Toolchain(
-                "rustup found but failed to execute. Please check your rustup installation.".to_string()
+                "rustup found but failed to execute. Please check your rustup installation."
+                    .to_string(),
             ));
         }
 
@@ -86,16 +88,14 @@ impl ToolchainManager {
         let output = Command::new(&self.rustup_path)
             .args(["toolchain", "list"])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to list toolchains: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to list toolchains: {e}")))?;
 
         if !output.status.success() {
-            return Err(Error::Toolchain(
-                "Failed to list toolchains".to_string()
-            ));
+            return Err(Error::Toolchain("Failed to list toolchains".to_string()));
         }
 
         let stdout = str::from_utf8(&output.stdout)
-            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {e}")))?;
 
         let mut toolchains = Vec::new();
         for line in stdout.lines() {
@@ -105,10 +105,7 @@ impl ToolchainManager {
             }
 
             let is_default = line.contains("(default)");
-            let name = line
-                .replace("(default)", "")
-                .trim()
-                .to_string();
+            let name = line.replace("(default)", "").trim().to_string();
 
             toolchains.push(Toolchain {
                 name,
@@ -144,16 +141,16 @@ impl ToolchainManager {
         let output = Command::new(&self.rustup_path)
             .args(["target", "list", "--installed", "--toolchain", toolchain])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to list targets: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to list targets: {e}")))?;
 
         if !output.status.success() {
             return Err(Error::Toolchain(format!(
-                "Failed to list targets for toolchain '{}'", toolchain
+                "Failed to list targets for toolchain '{toolchain}'"
             )));
         }
 
         let stdout = str::from_utf8(&output.stdout)
-            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {e}")))?;
 
         let targets: Vec<String> = stdout
             .lines()
@@ -184,22 +181,23 @@ impl ToolchainManager {
     /// # }
     /// ```
     pub fn install_target(&self, toolchain: &str, target: &str) -> Result<()> {
-        println!("Installing target {} for toolchain {}...", target, toolchain);
+        println!(
+            "Installing target {target} for toolchain {toolchain}..."
+        );
 
         let output = Command::new(&self.rustup_path)
             .args(["target", "add", target, "--toolchain", toolchain])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to install target: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to install target: {e}")))?;
 
         if !output.status.success() {
             let stderr = str::from_utf8(&output.stderr).unwrap_or("<invalid UTF-8>");
             return Err(Error::Toolchain(format!(
-                "Failed to install target '{}' for toolchain '{}': {}",
-                target, toolchain, stderr
+                "Failed to install target '{target}' for toolchain '{toolchain}': {stderr}"
             )));
         }
 
-        println!("Successfully installed target {}", target);
+        println!("Successfully installed target {target}");
         Ok(())
     }
 
@@ -225,21 +223,21 @@ impl ToolchainManager {
     /// # }
     /// ```
     pub fn install_toolchain(&self, toolchain: &str) -> Result<()> {
-        println!("Installing toolchain {}...", toolchain);
+        println!("Installing toolchain {toolchain}...");
 
         let output = Command::new(&self.rustup_path)
             .args(["toolchain", "install", toolchain])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to install toolchain: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to install toolchain: {e}")))?;
 
         if !output.status.success() {
             let stderr = str::from_utf8(&output.stderr).unwrap_or("<invalid UTF-8>");
             return Err(Error::Toolchain(format!(
-                "Failed to install toolchain '{}': {}", toolchain, stderr
+                "Failed to install toolchain '{toolchain}': {stderr}"
             )));
         }
 
-        println!("Successfully installed toolchain {}", toolchain);
+        println!("Successfully installed toolchain {toolchain}");
         Ok(())
     }
 
@@ -291,16 +289,16 @@ impl ToolchainManager {
         let output = Command::new(&self.rustup_path)
             .args(["show", "home"])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to get rustup home: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to get rustup home: {e}")))?;
 
         if !output.status.success() {
             return Err(Error::Toolchain(
-                "Failed to determine rustup home directory".to_string()
+                "Failed to determine rustup home directory".to_string(),
             ));
         }
 
         let stdout = str::from_utf8(&output.stdout)
-            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {e}")))?;
 
         let path = stdout.trim();
         Ok(std::path::PathBuf::from(path))
@@ -311,16 +309,16 @@ impl ToolchainManager {
         let output = Command::new(&self.rustup_path)
             .args(["show", "active-toolchain"])
             .output()
-            .map_err(|e| Error::Toolchain(format!("Failed to get active toolchain: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Failed to get active toolchain: {e}")))?;
 
         if !output.status.success() {
             return Err(Error::Toolchain(
-                "Failed to determine active toolchain".to_string()
+                "Failed to determine active toolchain".to_string(),
             ));
         }
 
         let stdout = str::from_utf8(&output.stdout)
-            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {}", e)))?;
+            .map_err(|e| Error::Toolchain(format!("Invalid UTF-8 in rustup output: {e}")))?;
 
         Ok(stdout.trim().to_string())
     }

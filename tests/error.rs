@@ -305,7 +305,10 @@ fn test_container_not_found_windows() {
 
 #[test]
 fn test_error_display_io() {
-    let error = Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "file not found"));
+    let error = Error::Io(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "file not found",
+    ));
     let display = format!("{}", error);
     assert!(display.contains("IO error"));
 }

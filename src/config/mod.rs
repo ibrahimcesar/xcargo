@@ -2,10 +2,10 @@
 //!
 //! This module handles parsing and managing xcargo.toml configuration files.
 
+use crate::error::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use crate::error::{Error, Result};
 
 mod discovery;
 
@@ -14,6 +14,7 @@ pub use discovery::ConfigDiscovery;
 /// Main configuration structure for xcargo.toml
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[derive(Default)]
 pub struct Config {
     /// Target platform configuration
     #[serde(default)]
@@ -34,6 +35,7 @@ pub struct Config {
 
 /// Target configuration section
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default)]
 pub struct TargetsConfig {
     /// Default targets to build when no target is specified
     #[serde(default)]
@@ -115,25 +117,7 @@ pub struct ProfileConfig {
     pub build: Option<BuildConfig>,
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            targets: TargetsConfig::default(),
-            build: BuildConfig::default(),
-            container: ContainerConfig::default(),
-            profiles: HashMap::new(),
-        }
-    }
-}
 
-impl Default for TargetsConfig {
-    fn default() -> Self {
-        Self {
-            default: Vec::new(),
-            custom: HashMap::new(),
-        }
-    }
-}
 
 impl Default for BuildConfig {
     fn default() -> Self {
@@ -191,15 +175,14 @@ impl Config {
     /// ```
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let contents = std::fs::read_to_string(path.as_ref())
-            .map_err(|e| Error::Config(format!("Failed to read config file: {}", e)))?;
+            .map_err(|e| Error::Config(format!("Failed to read config file: {e}")))?;
 
         Self::from_str(&contents)
     }
 
     /// Parse configuration from a TOML string
     pub fn from_str(toml: &str) -> Result<Self> {
-        toml::from_str(toml)
-            .map_err(|e| Error::Config(format!("Failed to parse TOML: {}", e)))
+        toml::from_str(toml).map_err(|e| Error::Config(format!("Failed to parse TOML: {e}")))
     }
 
     /// Discover and load configuration from the current directory
@@ -215,6 +198,7 @@ impl Config {
     }
 
     /// Get the default configuration
+    #[must_use] 
     pub fn default_config() -> Self {
         Self::default()
     }
@@ -255,11 +239,13 @@ impl Config {
     }
 
     /// Get configuration for a specific target
+    #[must_use] 
     pub fn get_target_config(&self, target: &str) -> Option<&TargetCustomConfig> {
         self.targets.custom.get(target)
     }
 
     /// Get a profile by name
+    #[must_use] 
     pub fn get_profile(&self, name: &str) -> Option<&ProfileConfig> {
         self.profiles.get(name)
     }
@@ -290,7 +276,7 @@ impl Config {
         if let Some(jobs) = self.build.jobs {
             if jobs == 0 {
                 return Err(Error::Config(
-                    "build.jobs must be greater than 0".to_string()
+                    "build.jobs must be greater than 0".to_string(),
                 ));
             }
         }
@@ -301,14 +287,14 @@ impl Config {
     /// Convert configuration to TOML string
     pub fn to_toml(&self) -> Result<String> {
         toml::to_string_pretty(self)
-            .map_err(|e| Error::Config(format!("Failed to serialize to TOML: {}", e)))
+            .map_err(|e| Error::Config(format!("Failed to serialize to TOML: {e}")))
     }
 
     /// Save configuration to a file
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let toml = self.to_toml()?;
         std::fs::write(path.as_ref(), toml)
-            .map_err(|e| Error::Config(format!("Failed to write config file: {}", e)))?;
+            .map_err(|e| Error::Config(format!("Failed to write config file: {e}")))?;
         Ok(())
     }
 }
@@ -384,9 +370,15 @@ mod tests {
 
         let config = Config::from_str(toml).unwrap();
         let target_config = config.get_target_config("x86_64-pc-windows-gnu").unwrap();
-        assert_eq!(target_config.linker, Some("x86_64-w64-mingw32-gcc".to_string()));
+        assert_eq!(
+            target_config.linker,
+            Some("x86_64-w64-mingw32-gcc".to_string())
+        );
         assert_eq!(target_config.force_container, Some(false));
-        assert_eq!(target_config.env.get("CC"), Some(&"x86_64-w64-mingw32-gcc".to_string()));
+        assert_eq!(
+            target_config.env.get("CC"),
+            Some(&"x86_64-w64-mingw32-gcc".to_string())
+        );
     }
 
     #[test]

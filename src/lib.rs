@@ -83,10 +83,14 @@ pub mod error {
                 Error::Io(_) => ExitCode::IoError,
                 Error::Prompt(_) => ExitCode::UserCancelled,
                 Error::TargetNotFound(_) | Error::InvalidTarget { .. } => ExitCode::TargetError,
-                Error::Toolchain(_) | Error::ToolchainMissing { .. } | Error::LinkerMissing { .. } => ExitCode::ToolchainError,
+                Error::Toolchain(_)
+                | Error::ToolchainMissing { .. }
+                | Error::LinkerMissing { .. } => ExitCode::ToolchainError,
                 Error::Build(_) | Error::BuildFailed { .. } => ExitCode::BuildError,
                 Error::Config(_) | Error::ConfigParse { .. } => ExitCode::ConfigError,
-                Error::Container(_) | Error::ContainerNotAvailable { .. } => ExitCode::ContainerError,
+                Error::Container(_) | Error::ContainerNotAvailable { .. } => {
+                    ExitCode::ContainerError
+                }
             }
         }
     }
@@ -185,11 +189,13 @@ pub mod error {
 
     impl Error {
         /// Get the exit code for this error
+        #[must_use] 
         pub fn exit_code(&self) -> i32 {
             ExitCode::from(self) as i32
         }
 
         /// Get a suggestion for fixing this error
+        #[must_use] 
         pub fn suggestion(&self) -> Option<String> {
             match self {
                 Error::InvalidTarget { suggestions, .. } => {
@@ -204,32 +210,35 @@ pub mod error {
                 Error::BuildFailed { suggestion, .. } => suggestion.clone(),
                 Error::ContainerNotAvailable { install_hint, .. } => Some(install_hint.clone()),
                 Error::ConfigParse { path, .. } => {
-                    Some(format!("Check {} for syntax errors", path))
+                    Some(format!("Check {path} for syntax errors"))
                 }
                 _ => None,
             }
         }
 
         /// Get a hint (additional context) for this error
+        #[must_use] 
         pub fn hint(&self) -> Option<String> {
             match self {
                 Error::TargetNotFound(_) | Error::InvalidTarget { .. } => {
                     Some("Use 'xcargo target list' to see available targets".to_string())
                 }
-                Error::LinkerMissing { target, .. } => {
-                    Some(format!("Cross-compiling to {} requires a compatible linker", target))
-                }
-                Error::BuildFailed { exit_code: Some(code), .. } => {
-                    Some(format!("Cargo exited with code {}", code))
-                }
+                Error::LinkerMissing { target, .. } => Some(format!(
+                    "Cross-compiling to {target} requires a compatible linker"
+                )),
+                Error::BuildFailed {
+                    exit_code: Some(code),
+                    ..
+                } => Some(format!("Cargo exited with code {code}")),
                 Error::ContainerNotAvailable { runtime, .. } => {
-                    Some(format!("Tried to use {} but it's not running", runtime))
+                    Some(format!("Tried to use {runtime} but it's not running"))
                 }
                 _ => None,
             }
         }
 
         /// Create a linker missing error with platform-specific install hints
+        #[must_use] 
         pub fn linker_not_found(linker: &str, target: &str, host_os: &str) -> Self {
             let install_hint = match (host_os, target) {
                 ("macos", t) if t.contains("windows") => {
@@ -247,7 +256,7 @@ pub mod error {
                 ("windows", t) if t.contains("linux") => {
                     "Consider using Zig: scoop install zig && xcargo build --zig".to_string()
                 }
-                _ => format!("Install a linker that supports {}", target),
+                _ => format!("Install a linker that supports {target}"),
             };
 
             Error::LinkerMissing {
@@ -258,21 +267,16 @@ pub mod error {
         }
 
         /// Create a container not available error with platform-specific hints
+        #[must_use] 
         pub fn container_not_found(runtime: &str, host_os: &str) -> Self {
             let install_hint = match host_os {
-                "macos" => format!(
-                    "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
-                     Or Podman: brew install podman && podman machine init && podman machine start"
-                ),
-                "linux" => format!(
-                    "Install Docker: sudo apt install docker.io && sudo systemctl start docker\n\
-                     Or Podman: sudo apt install podman"
-                ),
-                "windows" => format!(
-                    "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
-                     Or Podman: winget install RedHat.Podman"
-                ),
-                _ => format!("Install {} or a compatible container runtime", runtime),
+                "macos" => "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
+                     Or Podman: brew install podman && podman machine init && podman machine start".to_string(),
+                "linux" => "Install Docker: sudo apt install docker.io && sudo systemctl start docker\n\
+                     Or Podman: sudo apt install podman".to_string(),
+                "windows" => "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
+                     Or Podman: winget install RedHat.Podman".to_string(),
+                _ => format!("Install {runtime} or a compatible container runtime"),
             };
 
             Error::ContainerNotAvailable {
@@ -294,11 +298,11 @@ pub mod prelude {
     //! use xcargo::prelude::*;
     //! ```
 
+    pub use crate::build::{BuildOptions, Builder, CargoOperation};
+    pub use crate::config::Config;
     pub use crate::error::{Error, ExitCode, Result};
     pub use crate::target::{Target, TargetRequirements, TargetTier};
-    pub use crate::config::Config;
     pub use crate::toolchain::{Toolchain, ToolchainManager};
-    pub use crate::build::{Builder, BuildOptions, CargoOperation};
 }
 
 // Re-exports

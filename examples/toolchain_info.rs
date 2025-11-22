@@ -31,7 +31,11 @@ fn main() -> xcargo::Result<()> {
                 println!("  No toolchains installed");
             } else {
                 for toolchain in &toolchains {
-                    let marker = if toolchain.is_default { " (default)" } else { "" };
+                    let marker = if toolchain.is_default {
+                        " (default)"
+                    } else {
+                        ""
+                    };
                     println!("  - {}{}", toolchain.name, marker);
                 }
             }
@@ -105,7 +109,10 @@ fn main() -> xcargo::Result<()> {
                 println!("  Status: ✓ Already installed");
             } else {
                 println!("  Status: ✗ Not installed");
-                println!("  Note: Run `rustup target add {}` to install", windows_target.triple);
+                println!(
+                    "  Note: Run `rustup target add {}` to install",
+                    windows_target.triple
+                );
             }
         }
         Err(e) => println!("  Error checking installation: {}", e),

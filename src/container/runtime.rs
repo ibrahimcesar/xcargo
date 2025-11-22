@@ -21,7 +21,7 @@ impl RuntimeType {
             "auto" => Ok(Self::Auto),
             "docker" => Ok(Self::Docker),
             "podman" => Ok(Self::Podman),
-            _ => Err(Error::Config(format!("Unknown runtime type: {}", s))),
+            _ => Err(Error::Config(format!("Unknown runtime type: {s}"))),
         }
     }
 }
@@ -69,7 +69,7 @@ impl ContainerRuntime for DockerRuntime {
             .unwrap_or(false)
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "docker"
     }
 
@@ -78,12 +78,12 @@ impl ContainerRuntime for DockerRuntime {
             .arg("pull")
             .arg(image)
             .status()
-            .map_err(|e| Error::Container(format!("Failed to execute docker pull: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to execute docker pull: {e}")))?;
 
         if status.success() {
             Ok(())
         } else {
-            Err(Error::Container(format!("Failed to pull image: {}", image)))
+            Err(Error::Container(format!("Failed to pull image: {image}")))
         }
     }
 
@@ -96,20 +96,16 @@ impl ContainerRuntime for DockerRuntime {
         workdir: &str,
     ) -> Result<()> {
         let mut cmd = Command::new("docker");
-        cmd.arg("run")
-            .arg("--rm")
-            .arg("-it")
-            .arg("-w")
-            .arg(workdir);
+        cmd.arg("run").arg("--rm").arg("-it").arg("-w").arg(workdir);
 
         // Add volumes
         for (host, container) in volumes {
-            cmd.arg("-v").arg(format!("{}:{}", host, container));
+            cmd.arg("-v").arg(format!("{host}:{container}"));
         }
 
         // Add environment variables
         for (key, value) in env {
-            cmd.arg("-e").arg(format!("{}={}", key, value));
+            cmd.arg("-e").arg(format!("{key}={value}"));
         }
 
         // Add image
@@ -122,7 +118,7 @@ impl ContainerRuntime for DockerRuntime {
 
         let status = cmd
             .status()
-            .map_err(|e| Error::Container(format!("Failed to execute docker run: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to execute docker run: {e}")))?;
 
         if status.success() {
             Ok(())
@@ -137,12 +133,12 @@ impl ContainerRuntime for DockerRuntime {
             .arg("--format")
             .arg("{{.Repository}}:{{.Tag}}")
             .output()
-            .map_err(|e| Error::Container(format!("Failed to list images: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to list images: {e}")))?;
 
         if output.status.success() {
             let images = String::from_utf8_lossy(&output.stdout)
                 .lines()
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .collect();
             Ok(images)
         } else {
@@ -169,7 +165,7 @@ impl ContainerRuntime for PodmanRuntime {
             .unwrap_or(false)
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "podman"
     }
 
@@ -178,12 +174,12 @@ impl ContainerRuntime for PodmanRuntime {
             .arg("pull")
             .arg(image)
             .status()
-            .map_err(|e| Error::Container(format!("Failed to execute podman pull: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to execute podman pull: {e}")))?;
 
         if status.success() {
             Ok(())
         } else {
-            Err(Error::Container(format!("Failed to pull image: {}", image)))
+            Err(Error::Container(format!("Failed to pull image: {image}")))
         }
     }
 
@@ -196,20 +192,16 @@ impl ContainerRuntime for PodmanRuntime {
         workdir: &str,
     ) -> Result<()> {
         let mut cmd = Command::new("podman");
-        cmd.arg("run")
-            .arg("--rm")
-            .arg("-it")
-            .arg("-w")
-            .arg(workdir);
+        cmd.arg("run").arg("--rm").arg("-it").arg("-w").arg(workdir);
 
         // Add volumes
         for (host, container) in volumes {
-            cmd.arg("-v").arg(format!("{}:{}", host, container));
+            cmd.arg("-v").arg(format!("{host}:{container}"));
         }
 
         // Add environment variables
         for (key, value) in env {
-            cmd.arg("-e").arg(format!("{}={}", key, value));
+            cmd.arg("-e").arg(format!("{key}={value}"));
         }
 
         // Add image
@@ -222,7 +214,7 @@ impl ContainerRuntime for PodmanRuntime {
 
         let status = cmd
             .status()
-            .map_err(|e| Error::Container(format!("Failed to execute podman run: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to execute podman run: {e}")))?;
 
         if status.success() {
             Ok(())
@@ -237,12 +229,12 @@ impl ContainerRuntime for PodmanRuntime {
             .arg("--format")
             .arg("{{.Repository}}:{{.Tag}}")
             .output()
-            .map_err(|e| Error::Container(format!("Failed to list images: {}", e)))?;
+            .map_err(|e| Error::Container(format!("Failed to list images: {e}")))?;
 
         if output.status.success() {
             let images = String::from_utf8_lossy(&output.stdout)
                 .lines()
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .collect();
             Ok(images)
         } else {

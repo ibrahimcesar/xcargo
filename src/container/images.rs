@@ -17,6 +17,7 @@ pub struct CrossImage {
 
 impl CrossImage {
     /// Get the full image name (repository:tag)
+    #[must_use] 
     pub fn full_name(&self) -> String {
         format!("{}:{}", self.repository, self.tag)
     }
@@ -30,6 +31,7 @@ pub struct ImageSelector {
 
 impl ImageSelector {
     /// Create a new image selector
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             registry: "ghcr.io/cross-rs".to_string(),
@@ -37,6 +39,7 @@ impl ImageSelector {
     }
 
     /// Create with custom registry
+    #[must_use] 
     pub fn with_registry(registry: String) -> Self {
         Self { registry }
     }
@@ -58,8 +61,7 @@ impl ImageSelector {
             // macOS targets - cross-rs doesn't have macOS images, would need osxcross
             "x86_64-apple-darwin" | "aarch64-apple-darwin" => {
                 return Err(Error::Container(format!(
-                    "No container image available for macOS target: {}\nConsider using osxcross or build on macOS",
-                    target
+                    "No container image available for macOS target: {target}\nConsider using osxcross or build on macOS"
                 )));
             }
 
@@ -79,8 +81,7 @@ impl ImageSelector {
             // Unknown target
             _ => {
                 return Err(Error::Container(format!(
-                    "No container image mapping for target: {}\nYou can specify a custom image in xcargo.toml",
-                    target
+                    "No container image mapping for target: {target}\nYou can specify a custom image in xcargo.toml"
                 )));
             }
         };
@@ -93,6 +94,7 @@ impl ImageSelector {
     }
 
     /// List all supported targets with images
+    #[must_use] 
     pub fn supported_targets(&self) -> Vec<&str> {
         vec![
             // Linux

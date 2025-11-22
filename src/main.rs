@@ -1,14 +1,14 @@
 //! xcargo CLI entry point
 
 use clap::{Parser, Subcommand};
-use inquire::{MultiSelect, Select, Confirm, InquireError};
-use xcargo::build::{Builder, BuildOptions, CargoOperation};
+use inquire::{Confirm, InquireError, MultiSelect, Select};
+use std::path::Path;
+use xcargo::build::{BuildOptions, Builder, CargoOperation};
 use xcargo::config::Config;
 use xcargo::error::Error;
 use xcargo::output::{helpers, tips};
 use xcargo::target::Target;
 use xcargo::toolchain::ToolchainManager;
-use std::path::Path;
 
 /// Result type for main using xcargo's error type
 type Result<T> = std::result::Result<T, Error>;
@@ -204,7 +204,8 @@ fn run_basic_setup() -> Result<()> {
         helpers::warning("xcargo.toml already exists");
         let overwrite = Confirm::new("Overwrite existing configuration?")
             .with_default(false)
-            .prompt().map_err(prompt_err)?;
+            .prompt()
+            .map_err(prompt_err)?;
 
         if !overwrite {
             helpers::info("Setup cancelled");
@@ -229,15 +230,25 @@ fn run_basic_setup() -> Result<()> {
 fn run_interactive_setup() -> Result<()> {
     use xcargo::output::colors;
 
-    println!("\n{}{}✨ xcargo Interactive Setup{}", colors::BOLD, colors::CYAN, colors::RESET);
-    println!("{}Let's configure cross-compilation for your project!{}\n", colors::DIM, colors::RESET);
+    println!(
+        "\n{}{}✨ xcargo Interactive Setup{}",
+        colors::BOLD,
+        colors::CYAN,
+        colors::RESET
+    );
+    println!(
+        "{}Let's configure cross-compilation for your project!{}\n",
+        colors::DIM,
+        colors::RESET
+    );
 
     // Check for existing config
     if Path::new("xcargo.toml").exists() {
         helpers::warning("xcargo.toml already exists");
         let overwrite = Confirm::new("Overwrite existing configuration?")
             .with_default(false)
-            .prompt().map_err(prompt_err)?;
+            .prompt()
+            .map_err(prompt_err)?;
 
         if !overwrite {
             helpers::info("Setup cancelled");
@@ -251,28 +262,28 @@ fn run_interactive_setup() -> Result<()> {
     println!();
 
     // Select target platforms
-    let target_options = vec![
-        ("Linux x86_64", "x86_64-unknown-linux-gnu"),
+    let target_options = [("Linux x86_64", "x86_64-unknown-linux-gnu"),
         ("Linux x86_64 (musl)", "x86_64-unknown-linux-musl"),
         ("Linux ARM64", "aarch64-unknown-linux-gnu"),
         ("Windows x86_64 (GNU)", "x86_64-pc-windows-gnu"),
         ("Windows x86_64 (MSVC)", "x86_64-pc-windows-msvc"),
         ("macOS x86_64", "x86_64-apple-darwin"),
         ("macOS ARM64 (M1/M2)", "aarch64-apple-darwin"),
-        ("WebAssembly", "wasm32-unknown-unknown"),
-    ];
+        ("WebAssembly", "wasm32-unknown-unknown")];
 
     let selected_names = MultiSelect::new(
         "Which targets do you want to build for?",
-        target_options.iter().map(|(name, _)| *name).collect()
+        target_options.iter().map(|(name, _)| *name).collect(),
     )
     .with_help_message("Use ↑↓ to navigate, Space to select, Enter to confirm")
-    .prompt().map_err(prompt_err)?;
+    .prompt()
+    .map_err(prompt_err)?;
 
     let selected_targets: Vec<String> = selected_names
         .iter()
         .filter_map(|&selected_name| {
-            target_options.iter()
+            target_options
+                .iter()
                 .find(|(name, _)| name == &selected_name)
                 .map(|(_, triple)| triple.to_string())
         })
@@ -288,13 +299,15 @@ fn run_interactive_setup() -> Result<()> {
     let parallel = Confirm::new("Enable parallel builds?")
         .with_default(true)
         .with_help_message("Build multiple targets concurrently for faster builds")
-        .prompt().map_err(prompt_err)?;
+        .prompt()
+        .map_err(prompt_err)?;
 
     // Build caching
     let cache = Confirm::new("Enable build caching?")
         .with_default(true)
         .with_help_message("Cache build artifacts to speed up subsequent builds")
-        .prompt().map_err(prompt_err)?;
+        .prompt()
+        .map_err(prompt_err)?;
 
     // Container strategy
     let container_options = vec![
@@ -303,12 +316,10 @@ fn run_interactive_setup() -> Result<()> {
         "Never use containers",
     ];
 
-    let container_choice = Select::new(
-        "Container build strategy:",
-        container_options
-    )
-    .with_help_message("Containers ensure reproducible builds")
-    .prompt().map_err(prompt_err)?;
+    let container_choice = Select::new("Container build strategy:", container_options)
+        .with_help_message("Containers ensure reproducible builds")
+        .prompt()
+        .map_err(prompt_err)?;
 
     let use_when = match container_choice {
         "Auto (use containers only when necessary)" => "target.os != host.os",
@@ -342,8 +353,14 @@ fn run_interactive_setup() -> Result<()> {
     // Summary
     helpers::section("Configuration Summary");
     println!("Targets: {}", selected_targets.join(", "));
-    println!("Parallel builds: {}", if parallel { "enabled" } else { "disabled" });
-    println!("Build cache: {}", if cache { "enabled" } else { "disabled" });
+    println!(
+        "Parallel builds: {}",
+        if parallel { "enabled" } else { "disabled" }
+    );
+    println!(
+        "Build cache: {}",
+        if cache { "enabled" } else { "disabled" }
+    );
     println!("Container strategy: {}", use_when);
     println!();
 
@@ -357,7 +374,8 @@ fn run_interactive_setup() -> Result<()> {
     // Offer to install targets
     let install_now = Confirm::new("Install selected targets now?")
         .with_default(true)
-        .prompt().map_err(prompt_err)?;
+        .prompt()
+        .map_err(prompt_err)?;
 
     if install_now && !selected_targets.is_empty() {
         println!();
@@ -567,7 +585,10 @@ fn run() -> Result<()> {
                 ));
             }
 
-            TargetAction::List { installed, toolchain } => {
+            TargetAction::List {
+                installed,
+                toolchain,
+            } => {
                 helpers::section("Available Targets");
 
                 if installed {
@@ -625,12 +646,18 @@ fn run() -> Result<()> {
                         println!("Triple:       {}", target.triple);
                         println!("Architecture: {}", target.arch);
                         println!("OS:           {}", target.os);
-                        println!("Environment:  {}", target.env.as_deref().unwrap_or("default"));
+                        println!(
+                            "Environment:  {}",
+                            target.env.as_deref().unwrap_or("default")
+                        );
                         println!("Tier:         {:?}", target.tier);
                         println!();
 
                         let requirements = target.get_requirements();
-                        if requirements.linker.is_some() || !requirements.tools.is_empty() || !requirements.system_libs.is_empty() {
+                        if requirements.linker.is_some()
+                            || !requirements.tools.is_empty()
+                            || !requirements.system_libs.is_empty()
+                        {
                             helpers::info("Requirements:");
                             if let Some(linker) = requirements.linker {
                                 println!("  Linker: {}", linker);
@@ -652,8 +679,14 @@ fn run() -> Result<()> {
                         }
 
                         println!();
-                        helpers::tip(format!("Add this target: xcargo target add {}", target.triple));
-                        helpers::tip(format!("Build for this target: xcargo build --target {}", target.triple));
+                        helpers::tip(format!(
+                            "Add this target: xcargo target add {}",
+                            target.triple
+                        ));
+                        helpers::tip(format!(
+                            "Build for this target: xcargo build --target {}",
+                            target.triple
+                        ));
                     }
                     Err(e) => {
                         helpers::error(format!("Invalid target: {}", e));

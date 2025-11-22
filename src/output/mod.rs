@@ -3,7 +3,7 @@
 //! This module provides utilities for displaying information, tips, hints,
 //! and progress to users in a delightful and informative way.
 
-use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::fmt;
 use std::time::{Duration, Instant};
 
@@ -51,6 +51,7 @@ pub enum MessageType {
 
 impl MessageType {
     /// Get the icon for this message type
+    #[must_use] 
     pub fn icon(&self) -> &'static str {
         match self {
             Self::Success => "✓",
@@ -64,6 +65,7 @@ impl MessageType {
     }
 
     /// Get the color for this message type
+    #[must_use] 
     pub fn color(&self) -> &'static str {
         match self {
             Self::Success => colors::GREEN,
@@ -77,6 +79,7 @@ impl MessageType {
     }
 
     /// Get the label for this message type
+    #[must_use] 
     pub fn label(&self) -> &'static str {
         match self {
             Self::Success => "Success",
@@ -144,7 +147,7 @@ impl Message {
 
     /// Print the message to stdout
     pub fn print(&self) {
-        println!("{}", self);
+        println!("{self}");
     }
 }
 
@@ -165,7 +168,7 @@ impl fmt::Display for Message {
 
 /// Helper functions for common output patterns
 pub mod helpers {
-    use super::*;
+    use super::{Message, colors};
 
     /// Print a success message
     pub fn success(message: impl Into<String>) {
@@ -205,14 +208,20 @@ pub mod helpers {
     /// Print a section header
     pub fn section(title: impl Into<String>) {
         let title = title.into();
-        println!("\n{}{}{}{}", colors::BOLD, colors::CYAN, title, colors::RESET);
+        println!(
+            "\n{}{}{}{}",
+            colors::BOLD,
+            colors::CYAN,
+            title,
+            colors::RESET
+        );
         println!("{}", "─".repeat(title.len()));
     }
 }
 
 /// Progress bar utilities for build operations
 pub mod progress {
-    use super::*;
+    use super::{ProgressBar, Instant, ProgressStyle, Duration, colors, MultiProgress};
 
     /// A timed build progress tracker
     pub struct BuildProgress {
@@ -223,16 +232,16 @@ pub mod progress {
 
     impl BuildProgress {
         /// Create a new build progress spinner
+        #[must_use] 
         pub fn new(target: &str, operation: &str) -> Self {
             let bar = ProgressBar::new_spinner();
             bar.set_style(
                 ProgressStyle::default_spinner()
                     .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
                     .template(&format!(
-                        "{{spinner:.cyan}} {} {{msg:.bold}} [{{elapsed_precise}}]",
-                        operation
+                        "{{spinner:.cyan}} {operation} {{msg:.bold}} [{{elapsed_precise}}]"
                     ))
-                    .unwrap()
+                    .unwrap(),
             );
             bar.set_message(target.to_string());
             bar.enable_steady_tick(Duration::from_millis(80));
@@ -245,16 +254,19 @@ pub mod progress {
         }
 
         /// Create a build progress for compiling
+        #[must_use] 
         pub fn compiling(target: &str) -> Self {
             Self::new(target, "Compiling")
         }
 
         /// Create a build progress for checking
+        #[must_use] 
         pub fn checking(target: &str) -> Self {
             Self::new(target, "Checking")
         }
 
         /// Create a build progress for testing
+        #[must_use] 
         pub fn testing(target: &str) -> Self {
             Self::new(target, "Testing")
         }
@@ -269,9 +281,13 @@ pub mod progress {
             let elapsed = self.start_time.elapsed();
             self.bar.finish_with_message(format!(
                 "{}{}{} {} {}({}){}",
-                colors::GREEN, "✓", colors::RESET,
+                colors::GREEN,
+                "✓",
+                colors::RESET,
                 self.target,
-                colors::DIM, format_duration(elapsed), colors::RESET
+                colors::DIM,
+                format_duration(elapsed),
+                colors::RESET
             ));
         }
 
@@ -280,13 +296,19 @@ pub mod progress {
             let elapsed = self.start_time.elapsed();
             self.bar.finish_with_message(format!(
                 "{}{}{} {} - {} {}({}){}",
-                colors::RED, "✗", colors::RESET,
-                self.target, error,
-                colors::DIM, format_duration(elapsed), colors::RESET
+                colors::RED,
+                "✗",
+                colors::RESET,
+                self.target,
+                error,
+                colors::DIM,
+                format_duration(elapsed),
+                colors::RESET
             ));
         }
 
         /// Get elapsed duration
+        #[must_use] 
         pub fn elapsed(&self) -> Duration {
             self.start_time.elapsed()
         }
@@ -300,6 +322,7 @@ pub mod progress {
 
     impl MultiTargetProgress {
         /// Create a new multi-target progress tracker
+        #[must_use] 
         pub fn new() -> Self {
             Self {
                 multi: MultiProgress::new(),
@@ -308,16 +331,16 @@ pub mod progress {
         }
 
         /// Add a target progress bar
+        #[must_use] 
         pub fn add_target(&self, target: &str, operation: &str) -> ProgressBar {
             let bar = self.multi.add(ProgressBar::new_spinner());
             bar.set_style(
                 ProgressStyle::default_spinner()
                     .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
                     .template(&format!(
-                        "  {{spinner:.cyan}} {} {{msg:.bold}} [{{elapsed_precise}}]",
-                        operation
+                        "  {{spinner:.cyan}} {operation} {{msg:.bold}} [{{elapsed_precise}}]"
                     ))
-                    .unwrap()
+                    .unwrap(),
             );
             bar.set_message(target.to_string());
             bar.enable_steady_tick(Duration::from_millis(80));
@@ -325,6 +348,7 @@ pub mod progress {
         }
 
         /// Get total elapsed time
+        #[must_use] 
         pub fn elapsed(&self) -> Duration {
             self.start_time.elapsed()
         }
@@ -336,15 +360,20 @@ pub mod progress {
             if failures == 0 {
                 println!(
                     "{}{}✓{} All {} targets completed in {}",
-                    colors::BOLD, colors::GREEN, colors::RESET,
+                    colors::BOLD,
+                    colors::GREEN,
+                    colors::RESET,
                     successes,
                     format_duration(elapsed)
                 );
             } else {
                 println!(
                     "{}{}⚠{} {} succeeded, {} failed in {}",
-                    colors::BOLD, colors::YELLOW, colors::RESET,
-                    successes, failures,
+                    colors::BOLD,
+                    colors::YELLOW,
+                    colors::RESET,
+                    successes,
+                    failures,
                     format_duration(elapsed)
                 );
             }
@@ -358,6 +387,7 @@ pub mod progress {
     }
 
     /// Format a duration in a human-readable way
+    #[must_use] 
     pub fn format_duration(duration: Duration) -> String {
         let secs = duration.as_secs();
         let millis = duration.subsec_millis();
@@ -365,11 +395,11 @@ pub mod progress {
         if secs >= 60 {
             let mins = secs / 60;
             let secs = secs % 60;
-            format!("{}m {:02}s", mins, secs)
+            format!("{mins}m {secs:02}s")
         } else if secs > 0 {
             format!("{}.{:02}s", secs, millis / 10)
         } else {
-            format!("{}ms", millis)
+            format!("{millis}ms")
         }
     }
 
@@ -381,6 +411,7 @@ pub mod progress {
 
     impl Timer {
         /// Start a new timer
+        #[must_use] 
         pub fn start(label: &str) -> Self {
             Self {
                 start: Instant::now(),
@@ -389,6 +420,7 @@ pub mod progress {
         }
 
         /// Get elapsed duration
+        #[must_use] 
         pub fn elapsed(&self) -> Duration {
             self.start.elapsed()
         }
@@ -397,9 +429,13 @@ pub mod progress {
         pub fn print_elapsed(&self) {
             println!(
                 "{}{}⏱{} {} completed in {}{}{}",
-                colors::BOLD, colors::CYAN, colors::RESET,
+                colors::BOLD,
+                colors::CYAN,
+                colors::RESET,
                 self.label,
-                colors::DIM, format_duration(self.elapsed()), colors::RESET
+                colors::DIM,
+                format_duration(self.elapsed()),
+                colors::RESET
             );
         }
     }
@@ -408,16 +444,13 @@ pub mod progress {
 /// Common tips for xcargo users
 pub mod tips {
     /// Tip about installing targets
-    pub const INSTALL_TARGET: &str =
-        "Use 'xcargo target add <triple>' to install a new target";
+    pub const INSTALL_TARGET: &str = "Use 'xcargo target add <triple>' to install a new target";
 
     /// Tip about checking installed targets
-    pub const LIST_TARGETS: &str =
-        "Use 'xcargo target list' to see all available targets";
+    pub const LIST_TARGETS: &str = "Use 'xcargo target list' to see all available targets";
 
     /// Tip about configuration
-    pub const CONFIG_FILE: &str =
-        "Create an xcargo.toml file to customize build behavior";
+    pub const CONFIG_FILE: &str = "Create an xcargo.toml file to customize build behavior";
 
     /// Tip about parallel builds
     pub const PARALLEL_BUILDS: &str =
@@ -467,7 +500,7 @@ mod tests {
     #[test]
     fn test_message_display() {
         let msg = Message::info("Testing message");
-        let output = format!("{}", msg);
+        let output = format!("{msg}");
         assert!(output.contains("Testing message"));
     }
 }
