@@ -73,6 +73,22 @@ const sidebars: SidebarsConfig = {
       ],
     },
   ],
+
+  researchSidebar: [
+    {
+      type: 'category',
+      label: 'Research & Internal Docs',
+      collapsed: false,
+      items: [
+        'research/BUNDLED_TOOLCHAINS',
+        'research/MACOS_TOOLCHAINS_RESEARCH',
+        'research/WINDOWS_TOOLCHAINS_RESEARCH',
+        'research/TOOLCHAIN_TESTING_FINDINGS',
+        'research/BINARY_SIGNATURES',
+        'research/SIGNING_SETUP',
+      ],
+    },
+  ],
 };
 
 export default sidebars;
