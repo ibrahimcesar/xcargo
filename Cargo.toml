@@ -97,3 +97,11 @@ opt-level = 0
 [[example]]
 name = "basic_build"
 path = "examples/basic_build.rs"
+
+[[example]]
+name = "notification_plugin"
+path = "examples/plugins/notification_plugin.rs"
+
+[[example]]
+name = "metrics_plugin"
+path = "examples/plugins/metrics_plugin.rs"

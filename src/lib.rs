@@ -62,6 +62,9 @@ pub mod error;
 /// Build caching
 pub mod cache;
 
+/// Plugin system for extensibility
+pub mod plugin;
+
 /// Prelude for convenient imports
 pub mod prelude {
     //! Convenient re-exports
