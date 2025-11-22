@@ -262,14 +262,16 @@ fn run_interactive_setup() -> Result<()> {
     println!();
 
     // Select target platforms
-    let target_options = [("Linux x86_64", "x86_64-unknown-linux-gnu"),
+    let target_options = [
+        ("Linux x86_64", "x86_64-unknown-linux-gnu"),
         ("Linux x86_64 (musl)", "x86_64-unknown-linux-musl"),
         ("Linux ARM64", "aarch64-unknown-linux-gnu"),
         ("Windows x86_64 (GNU)", "x86_64-pc-windows-gnu"),
         ("Windows x86_64 (MSVC)", "x86_64-pc-windows-msvc"),
         ("macOS x86_64", "x86_64-apple-darwin"),
         ("macOS ARM64 (M1/M2)", "aarch64-apple-darwin"),
-        ("WebAssembly", "wasm32-unknown-unknown")];
+        ("WebAssembly", "wasm32-unknown-unknown"),
+    ];
 
     let selected_names = MultiSelect::new(
         "Which targets do you want to build for?",

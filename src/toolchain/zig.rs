@@ -67,13 +67,13 @@ impl ZigToolchain {
     }
 
     /// Get the Zig version
-    #[must_use] 
+    #[must_use]
     pub fn version(&self) -> &str {
         &self.version
     }
 
     /// Get the path to the Zig binary
-    #[must_use] 
+    #[must_use]
     pub fn path(&self) -> &Path {
         &self.zig_path
     }
@@ -81,7 +81,7 @@ impl ZigToolchain {
     /// Check if Zig supports a target by triple name (static method)
     ///
     /// This can be called without having a `ZigToolchain` instance.
-    #[must_use] 
+    #[must_use]
     pub fn supports_target_name(triple: &str) -> bool {
         match triple {
             // Linux targets (well-supported)
@@ -114,7 +114,7 @@ impl ZigToolchain {
     ///
     /// Zig supports many targets out of the box. This function checks if the
     /// target is supported by Zig.
-    #[must_use] 
+    #[must_use]
     pub fn supports_target(&self, target: &Target) -> bool {
         // Zig supports most Linux targets
         // Known supported targets:
@@ -158,9 +158,7 @@ impl ZigToolchain {
 
         // Create cache directory
         fs::create_dir_all(&self.cache_dir).map_err(|e| {
-            Error::Toolchain(format!(
-                "Failed to create Zig wrapper cache directory: {e}"
-            ))
+            Error::Toolchain(format!("Failed to create Zig wrapper cache directory: {e}"))
         })?;
 
         let mut wrappers = HashMap::new();
@@ -183,9 +181,8 @@ impl ZigToolchain {
                 .map_err(|e| Error::Toolchain(format!("Failed to get wrapper permissions: {e}")))?
                 .permissions();
             perms.set_mode(0o755);
-            fs::set_permissions(&cc_wrapper_path, perms).map_err(|e| {
-                Error::Toolchain(format!("Failed to set wrapper permissions: {e}"))
-            })?;
+            fs::set_permissions(&cc_wrapper_path, perms)
+                .map_err(|e| Error::Toolchain(format!("Failed to set wrapper permissions: {e}")))?;
         }
 
         wrappers.insert("CC".to_string(), cc_wrapper_path.clone());
@@ -281,15 +278,14 @@ impl ZigToolchain {
     /// Clean up wrapper scripts cache
     pub fn clean_cache(&self) -> Result<()> {
         if self.cache_dir.exists() {
-            fs::remove_dir_all(&self.cache_dir).map_err(|e| {
-                Error::Toolchain(format!("Failed to clean Zig wrapper cache: {e}"))
-            })?;
+            fs::remove_dir_all(&self.cache_dir)
+                .map_err(|e| Error::Toolchain(format!("Failed to clean Zig wrapper cache: {e}")))?;
         }
         Ok(())
     }
 
     /// Get a summary of Zig's capabilities
-    #[must_use] 
+    #[must_use]
     pub fn info(&self) -> String {
         format!(
             "Zig {} ({})\nSupports: Linux (x86_64, aarch64, armv7), Windows (x86_64, i686)\nLimitations: musl may have linking issues, macOS/wasm not supported",

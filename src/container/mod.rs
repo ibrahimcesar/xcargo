@@ -61,13 +61,13 @@ impl ContainerBuilder {
     }
 
     /// Check if the container runtime is available
-    #[must_use] 
+    #[must_use]
     pub fn is_available(&self) -> bool {
         self.runtime.is_available()
     }
 
     /// Get the runtime name
-    #[must_use] 
+    #[must_use]
     pub fn runtime_name(&self) -> &str {
         self.runtime.name()
     }

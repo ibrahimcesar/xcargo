@@ -1,5 +1,7 @@
 //! Integration tests for xcargo CLI commands
 
+#![allow(deprecated)]
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;

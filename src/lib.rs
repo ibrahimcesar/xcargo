@@ -22,6 +22,17 @@
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::should_implement_trait)]
+#![allow(clippy::assigning_clones)]
+#![allow(clippy::manual_let_else)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::unused_self)]
+#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::unnecessary_unwrap)]
+#![cfg_attr(test, allow(deprecated))]
 
 /// Target platform definitions and detection
 pub mod target;
@@ -40,9 +51,7 @@ pub mod build;
 pub mod container;
 
 /// Dependency management (OpenSSL, etc.)
-pub mod deps {
-    //! Native dependency handling
-}
+pub mod deps {}
 
 /// Output and logging
 pub mod output;
@@ -50,6 +59,7 @@ pub mod output;
 /// Error types
 pub mod error {
     //! Error definitions with structured error codes and suggestions
+    #![allow(clippy::mixed_attributes_style)]
 
     use thiserror::Error;
 
@@ -189,13 +199,13 @@ pub mod error {
 
     impl Error {
         /// Get the exit code for this error
-        #[must_use] 
+        #[must_use]
         pub fn exit_code(&self) -> i32 {
             ExitCode::from(self) as i32
         }
 
         /// Get a suggestion for fixing this error
-        #[must_use] 
+        #[must_use]
         pub fn suggestion(&self) -> Option<String> {
             match self {
                 Error::InvalidTarget { suggestions, .. } => {
@@ -209,15 +219,13 @@ pub mod error {
                 Error::LinkerMissing { install_hint, .. } => Some(install_hint.clone()),
                 Error::BuildFailed { suggestion, .. } => suggestion.clone(),
                 Error::ContainerNotAvailable { install_hint, .. } => Some(install_hint.clone()),
-                Error::ConfigParse { path, .. } => {
-                    Some(format!("Check {path} for syntax errors"))
-                }
+                Error::ConfigParse { path, .. } => Some(format!("Check {path} for syntax errors")),
                 _ => None,
             }
         }
 
         /// Get a hint (additional context) for this error
-        #[must_use] 
+        #[must_use]
         pub fn hint(&self) -> Option<String> {
             match self {
                 Error::TargetNotFound(_) | Error::InvalidTarget { .. } => {
@@ -238,7 +246,7 @@ pub mod error {
         }
 
         /// Create a linker missing error with platform-specific install hints
-        #[must_use] 
+        #[must_use]
         pub fn linker_not_found(linker: &str, target: &str, host_os: &str) -> Self {
             let install_hint = match (host_os, target) {
                 ("macos", t) if t.contains("windows") => {
@@ -267,15 +275,24 @@ pub mod error {
         }
 
         /// Create a container not available error with platform-specific hints
-        #[must_use] 
+        #[must_use]
         pub fn container_not_found(runtime: &str, host_os: &str) -> Self {
             let install_hint = match host_os {
-                "macos" => "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
-                     Or Podman: brew install podman && podman machine init && podman machine start".to_string(),
-                "linux" => "Install Docker: sudo apt install docker.io && sudo systemctl start docker\n\
-                     Or Podman: sudo apt install podman".to_string(),
-                "windows" => "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
-                     Or Podman: winget install RedHat.Podman".to_string(),
+                "macos" => {
+                    "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
+                     Or Podman: brew install podman && podman machine init && podman machine start"
+                        .to_string()
+                }
+                "linux" => {
+                    "Install Docker: sudo apt install docker.io && sudo systemctl start docker\n\
+                     Or Podman: sudo apt install podman"
+                        .to_string()
+                }
+                "windows" => {
+                    "Install Docker Desktop: https://www.docker.com/products/docker-desktop\n\
+                     Or Podman: winget install RedHat.Podman"
+                        .to_string()
+                }
                 _ => format!("Install {runtime} or a compatible container runtime"),
             };
 
@@ -297,6 +314,7 @@ pub mod prelude {
     //! ```rust
     //! use xcargo::prelude::*;
     //! ```
+    #![allow(clippy::mixed_attributes_style)]
 
     pub use crate::build::{BuildOptions, Builder, CargoOperation};
     pub use crate::config::Config;

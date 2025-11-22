@@ -284,6 +284,7 @@ pub fn create_runtime(runtime_type: RuntimeType) -> Result<Box<dyn ContainerRunt
 }
 
 /// Check if any container runtime is available (for informational purposes)
+#[allow(dead_code)]
 pub fn check_runtime_availability() -> Option<String> {
     let docker = DockerRuntime::new();
     if docker.is_available() {

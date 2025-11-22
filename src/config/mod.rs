@@ -34,8 +34,7 @@ pub struct Config {
 }
 
 /// Target configuration section
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct TargetsConfig {
     /// Default targets to build when no target is specified
     #[serde(default)]
@@ -117,8 +116,6 @@ pub struct ProfileConfig {
     pub build: Option<BuildConfig>,
 }
 
-
-
 impl Default for BuildConfig {
     fn default() -> Self {
         Self {
@@ -198,7 +195,7 @@ impl Config {
     }
 
     /// Get the default configuration
-    #[must_use] 
+    #[must_use]
     pub fn default_config() -> Self {
         Self::default()
     }
@@ -239,13 +236,13 @@ impl Config {
     }
 
     /// Get configuration for a specific target
-    #[must_use] 
+    #[must_use]
     pub fn get_target_config(&self, target: &str) -> Option<&TargetCustomConfig> {
         self.targets.custom.get(target)
     }
 
     /// Get a profile by name
-    #[must_use] 
+    #[must_use]
     pub fn get_profile(&self, name: &str) -> Option<&ProfileConfig> {
         self.profiles.get(name)
     }

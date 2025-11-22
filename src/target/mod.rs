@@ -2,7 +2,6 @@
 //!
 //! This module provides types and functions for working with Rust target triples,
 //! detecting available targets, and validating target configurations.
-
 use crate::error::{Error, Result};
 use std::fmt;
 use std::process::Command;
@@ -22,7 +21,7 @@ pub struct TargetRequirements {
 
 impl TargetRequirements {
     /// Create empty requirements
-    #[must_use] 
+    #[must_use]
     pub fn none() -> Self {
         Self {
             linker: None,
@@ -33,7 +32,7 @@ impl TargetRequirements {
     }
 
     /// Check if all requirements are satisfied
-    #[must_use] 
+    #[must_use]
     pub fn are_satisfied(&self) -> bool {
         // Check if linker is available
         if let Some(ref linker) = self.linker {
@@ -101,6 +100,10 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the target triple is invalid (fewer than 3 parts).
     pub fn from_triple(triple: &str) -> Result<Self> {
         let parts: Vec<&str> = triple.split('-').collect();
 
@@ -376,13 +379,13 @@ impl Target {
     }
 
     /// Check if native compilation is likely possible for this target
-    #[must_use] 
+    #[must_use]
     pub fn supports_native_build(&self) -> bool {
         matches!(self.tier, TargetTier::Native)
     }
 
     /// Check if this target requires container-based compilation
-    #[must_use] 
+    #[must_use]
     pub fn requires_container(&self) -> bool {
         matches!(self.tier, TargetTier::Container | TargetTier::Specialized)
     }
@@ -403,7 +406,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use] 
+    #[must_use]
     pub fn get_requirements(&self) -> TargetRequirements {
         let mut reqs = TargetRequirements::none();
 
@@ -485,7 +488,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use] 
+    #[must_use]
     pub fn detect_linker(&self) -> Option<String> {
         let reqs = self.get_requirements();
 
@@ -535,7 +538,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use] 
+    #[must_use]
     pub fn can_cross_compile_from(&self, host: &Target) -> bool {
         // Same target - can always build
         if self.triple == host.triple {
@@ -568,7 +571,7 @@ impl Target {
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use] 
+    #[must_use]
     pub fn get_install_instructions(&self) -> Vec<String> {
         let mut instructions = Vec::new();
         let reqs = self.get_requirements();

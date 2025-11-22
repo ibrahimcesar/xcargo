@@ -181,9 +181,7 @@ impl ToolchainManager {
     /// # }
     /// ```
     pub fn install_target(&self, toolchain: &str, target: &str) -> Result<()> {
-        println!(
-            "Installing target {target} for toolchain {toolchain}..."
-        );
+        println!("Installing target {target} for toolchain {toolchain}...");
 
         let output = Command::new(&self.rustup_path)
             .args(["target", "add", target, "--toolchain", toolchain])

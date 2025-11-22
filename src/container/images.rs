@@ -17,7 +17,7 @@ pub struct CrossImage {
 
 impl CrossImage {
     /// Get the full image name (repository:tag)
-    #[must_use] 
+    #[must_use]
     pub fn full_name(&self) -> String {
         format!("{}:{}", self.repository, self.tag)
     }
@@ -31,7 +31,7 @@ pub struct ImageSelector {
 
 impl ImageSelector {
     /// Create a new image selector
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             registry: "ghcr.io/cross-rs".to_string(),
@@ -39,7 +39,7 @@ impl ImageSelector {
     }
 
     /// Create with custom registry
-    #[must_use] 
+    #[must_use]
     pub fn with_registry(registry: String) -> Self {
         Self { registry }
     }
@@ -94,7 +94,7 @@ impl ImageSelector {
     }
 
     /// List all supported targets with images
-    #[must_use] 
+    #[must_use]
     pub fn supported_targets(&self) -> Vec<&str> {
         vec![
             // Linux

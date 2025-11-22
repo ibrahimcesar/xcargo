@@ -29,7 +29,7 @@ pub enum CargoOperation {
 
 impl CargoOperation {
     /// Get the cargo subcommand name
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             CargoOperation::Build => "build",
@@ -39,7 +39,7 @@ impl CargoOperation {
     }
 
     /// Get a human-readable description
-    #[must_use] 
+    #[must_use]
     pub fn description(&self) -> &'static str {
         match self {
             CargoOperation::Build => "Building",
@@ -253,10 +253,7 @@ impl Builder {
 
                     let requirements = target.get_requirements();
                     if !requirements.tools.is_empty() {
-                        helpers::hint(format!(
-                            "Required tools: {}",
-                            requirements.tools.join(", ")
-                        ));
+                        helpers::hint(format!("Required tools: {}", requirements.tools.join(", ")));
                     }
 
                     // Suggest platform-specific installation
@@ -275,9 +272,7 @@ impl Builder {
                             helpers::info(format!("Using default linker: {suggested_linker}"));
                         }
                     } else {
-                        helpers::hint(format!(
-                            "Recommended linker '{suggested_linker}' not found"
-                        ));
+                        helpers::hint(format!("Recommended linker '{suggested_linker}' not found"));
 
                         let host = Target::detect_host()?;
                         self.suggest_linker_installation(&host, &target);

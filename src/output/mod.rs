@@ -51,7 +51,7 @@ pub enum MessageType {
 
 impl MessageType {
     /// Get the icon for this message type
-    #[must_use] 
+    #[must_use]
     pub fn icon(&self) -> &'static str {
         match self {
             Self::Success => "✓",
@@ -65,7 +65,7 @@ impl MessageType {
     }
 
     /// Get the color for this message type
-    #[must_use] 
+    #[must_use]
     pub fn color(&self) -> &'static str {
         match self {
             Self::Success => colors::GREEN,
@@ -79,7 +79,7 @@ impl MessageType {
     }
 
     /// Get the label for this message type
-    #[must_use] 
+    #[must_use]
     pub fn label(&self) -> &'static str {
         match self {
             Self::Success => "Success",
@@ -168,7 +168,7 @@ impl fmt::Display for Message {
 
 /// Helper functions for common output patterns
 pub mod helpers {
-    use super::{Message, colors};
+    use super::{colors, Message};
 
     /// Print a success message
     pub fn success(message: impl Into<String>) {
@@ -221,7 +221,7 @@ pub mod helpers {
 
 /// Progress bar utilities for build operations
 pub mod progress {
-    use super::{ProgressBar, Instant, ProgressStyle, Duration, colors, MultiProgress};
+    use super::{colors, Duration, Instant, MultiProgress, ProgressBar, ProgressStyle};
 
     /// A timed build progress tracker
     pub struct BuildProgress {
@@ -232,7 +232,7 @@ pub mod progress {
 
     impl BuildProgress {
         /// Create a new build progress spinner
-        #[must_use] 
+        #[must_use]
         pub fn new(target: &str, operation: &str) -> Self {
             let bar = ProgressBar::new_spinner();
             bar.set_style(
@@ -254,19 +254,19 @@ pub mod progress {
         }
 
         /// Create a build progress for compiling
-        #[must_use] 
+        #[must_use]
         pub fn compiling(target: &str) -> Self {
             Self::new(target, "Compiling")
         }
 
         /// Create a build progress for checking
-        #[must_use] 
+        #[must_use]
         pub fn checking(target: &str) -> Self {
             Self::new(target, "Checking")
         }
 
         /// Create a build progress for testing
-        #[must_use] 
+        #[must_use]
         pub fn testing(target: &str) -> Self {
             Self::new(target, "Testing")
         }
@@ -308,7 +308,7 @@ pub mod progress {
         }
 
         /// Get elapsed duration
-        #[must_use] 
+        #[must_use]
         pub fn elapsed(&self) -> Duration {
             self.start_time.elapsed()
         }
@@ -322,7 +322,7 @@ pub mod progress {
 
     impl MultiTargetProgress {
         /// Create a new multi-target progress tracker
-        #[must_use] 
+        #[must_use]
         pub fn new() -> Self {
             Self {
                 multi: MultiProgress::new(),
@@ -331,7 +331,7 @@ pub mod progress {
         }
 
         /// Add a target progress bar
-        #[must_use] 
+        #[must_use]
         pub fn add_target(&self, target: &str, operation: &str) -> ProgressBar {
             let bar = self.multi.add(ProgressBar::new_spinner());
             bar.set_style(
@@ -348,7 +348,7 @@ pub mod progress {
         }
 
         /// Get total elapsed time
-        #[must_use] 
+        #[must_use]
         pub fn elapsed(&self) -> Duration {
             self.start_time.elapsed()
         }
@@ -387,7 +387,7 @@ pub mod progress {
     }
 
     /// Format a duration in a human-readable way
-    #[must_use] 
+    #[must_use]
     pub fn format_duration(duration: Duration) -> String {
         let secs = duration.as_secs();
         let millis = duration.subsec_millis();
@@ -411,7 +411,7 @@ pub mod progress {
 
     impl Timer {
         /// Start a new timer
-        #[must_use] 
+        #[must_use]
         pub fn start(label: &str) -> Self {
             Self {
                 start: Instant::now(),
@@ -420,7 +420,7 @@ pub mod progress {
         }
 
         /// Get elapsed duration
-        #[must_use] 
+        #[must_use]
         pub fn elapsed(&self) -> Duration {
             self.start.elapsed()
         }
