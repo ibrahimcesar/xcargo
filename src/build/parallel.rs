@@ -5,8 +5,8 @@ use crate::output::helpers;
 use std::sync::{Arc, Mutex};
 use tokio::task;
 
-use super::options::BuildOptions;
 use super::executor::Builder;
+use super::options::BuildOptions;
 
 impl Builder {
     /// Build multiple targets in parallel using tokio tasks
