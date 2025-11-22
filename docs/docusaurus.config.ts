@@ -51,6 +51,10 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    './plugins/clacks-overhead.js',
+  ],
+
   themeConfig: {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
@@ -141,7 +145,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Ibrahim Cesar. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Ibrahim Cesar. Built with Docusaurus.<br/>GNU Terry Pratchett 🪶`,
     },
     prism: {
       theme: prismThemes.github,
