@@ -322,11 +322,10 @@ impl ToolchainManager {
     }
 }
 
-impl Default for ToolchainManager {
-    fn default() -> Self {
-        Self::new().expect("Failed to initialize ToolchainManager")
-    }
-}
+// Note: ToolchainManager::new() can fail if rustup is not installed.
+// Users should call new() directly instead of relying on Default,
+// which is only provided for convenience in tests and examples where
+// rustup is guaranteed to be available.
 
 #[cfg(test)]
 mod tests {

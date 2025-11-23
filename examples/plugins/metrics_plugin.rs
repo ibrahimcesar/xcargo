@@ -154,9 +154,9 @@ fn main() -> Result<()> {
     ];
 
     for (target, release, will_succeed) in targets {
-        println!("\n{'=':.>60}", "");
+        println!("\n{:=<60}", "");
         println!("Building: {} ({})", target, if release { "release" } else { "debug" });
-        println!("{'=':.>60}\n", "");
+        println!("{:=<60}\n", "");
 
         let ctx = PluginContext::new(target.to_string())
             .with_release(release)
@@ -184,7 +184,7 @@ fn main() -> Result<()> {
     }
 
     // Cleanup
-    println!("\n{'=':.>60}", "");
+    println!("\n{:=<60}", "");
     registry.shutdown()?;
 
     println!("\n=== Example Complete ===");

@@ -406,9 +406,25 @@ fn run_interactive_setup() -> Result<()> {
 }
 
 fn main() {
+    // Set up Ctrl+C handler for graceful shutdown
+    setup_signal_handler();
+
     if let Err(e) = run() {
         exit_with_error(&e);
     }
+}
+
+/// Set up signal handler for graceful shutdown on Ctrl+C
+fn setup_signal_handler() {
+    ctrlc::set_handler(move || {
+        eprintln!("\n");
+        helpers::warning("Received interrupt signal (Ctrl+C)");
+        helpers::info("Cleaning up and shutting down gracefully...");
+
+        // Exit with code 130 (128 + SIGINT)
+        std::process::exit(130);
+    })
+    .expect("Error setting Ctrl-C handler");
 }
 
 fn run() -> Result<()> {

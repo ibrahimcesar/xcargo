@@ -57,6 +57,9 @@ colored = "2.1"
 indicatif = "0.17"
 inquire = "0.7"
 
+# Signal handling
+ctrlc = "3.4"
+
 # Future: Container runtime
 # Note: Currently uses CLI (docker/podman commands)
 # Future: Consider bollard (Rust Docker client) or youki (Rust OCI runtime)

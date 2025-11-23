@@ -28,24 +28,32 @@ async fn test_parallel_build_single_target() -> Result<()> {
     let host_target = std::env::var("TARGET")
         .or_else(|_| std::env::var("HOST"))
         .unwrap_or_else(|_| {
-            // Fallback to common targets
-            #[cfg(target_arch = "x86_64")]
-            #[cfg(target_os = "macos")]
-            return "x86_64-apple-darwin".to_string();
-
-            #[cfg(target_arch = "aarch64")]
-            #[cfg(target_os = "macos")]
-            return "aarch64-apple-darwin".to_string();
-
-            #[cfg(target_arch = "x86_64")]
-            #[cfg(target_os = "linux")]
-            return "x86_64-unknown-linux-gnu".to_string();
-
-            #[cfg(target_arch = "x86_64")]
-            #[cfg(target_os = "windows")]
-            return "x86_64-pc-windows-msvc".to_string();
-
-            "unknown".to_string()
+            // Fallback to common targets based on current platform
+            #[cfg(all(target_arch = "x86_64", target_os = "macos"))]
+            {
+                "x86_64-apple-darwin".to_string()
+            }
+            #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+            {
+                "aarch64-apple-darwin".to_string()
+            }
+            #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+            {
+                "x86_64-unknown-linux-gnu".to_string()
+            }
+            #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
+            {
+                "x86_64-pc-windows-msvc".to_string()
+            }
+            #[cfg(not(any(
+                all(target_arch = "x86_64", target_os = "macos"),
+                all(target_arch = "aarch64", target_os = "macos"),
+                all(target_arch = "x86_64", target_os = "linux"),
+                all(target_arch = "x86_64", target_os = "windows")
+            )))]
+            {
+                "unknown".to_string()
+            }
         });
 
     let targets = vec![host_target];
