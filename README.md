@@ -748,6 +748,24 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 - [API Documentation](https://docs.rs/xcargo)
 - [Configuration Reference](https://ibrahimcesar.github.io/xcargo/docs/reference/configuration)
 - [Target Guide](https://ibrahimcesar.github.io/xcargo/docs/guides/target-management)
+- [Container Security Guide](docs/guides/container-security.md) - 🔒 Best practices for secure builds
+
+## 🔒 Security
+
+xcargo is built with security in mind:
+
+- ✅ **Memory safe** - Written in Rust with zero unsafe code
+- ✅ **Input validation** - All inputs are validated and sanitized
+- ✅ **No shell execution** - Direct process execution prevents injection attacks
+- ✅ **Audited dependencies** - All dependencies are regularly scanned
+- ✅ **Security evaluation** - Comprehensive security review completed for v1.0.0
+
+**Security resources:**
+- [Security Policy](SECURITY.md) - Vulnerability reporting process
+- [Security Evaluation](.github/SECURITY_EVALUATION.md) - Detailed security analysis
+- [Container Security Guide](docs/guides/container-security.md) - Secure container builds
+
+**Report security issues:** security@xcargo.dev or via [GitHub Security Advisories](https://github.com/ibrahimcesar/xcargo/security/advisories)
 
 ## 📝 License
 

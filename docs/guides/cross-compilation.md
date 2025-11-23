@@ -717,8 +717,44 @@ targets = [
 | WASM (browser) | `wasm32-unknown-unknown` | Browser/WASI |
 | WASM (WASI) | `wasm32-wasi` | Server-side WASM |
 
+## Security Considerations
+
+When cross-compiling, especially using containers, follow these security best practices:
+
+### Container Security 🔒
+
+If using container-based builds (`--container` flag), ensure:
+
+1. **Verify Images** - Use official Rust images or pin to specific digests:
+   ```toml
+   [container]
+   # Pin to specific digest for security
+   image = "rust:1.70@sha256:abc123..."
+   ```
+
+2. **Rootless Containers** - Use rootless Docker/Podman when possible
+3. **Offline Builds** - Vendor dependencies for sensitive builds
+4. **Image Scanning** - Scan images for vulnerabilities before use
+
+See [Container Security Guide](container-security.md) for comprehensive best practices.
+
+### Build Environment Trust
+
+xcargo trusts:
+- Your xcargo.toml configuration
+- System-installed toolchains (rustc, rustup)
+- Container images you specify
+
+**Always:**
+- ✅ Verify toolchain installations from official sources
+- ✅ Review xcargo.toml before using third-party projects
+- ✅ Keep Docker/Podman updated for container builds
+
+For security issues, see our [Security Policy](../../SECURITY.md).
+
 ## Further Reading
 
+- [Container Security Guide](container-security.md) - **🔒 Best practices for secure container builds**
 - [Target Management Guide](target-management.md) - Managing targets and toolchains
 - [CI/CD Integration](ci-cd-integration.md) - Using xcargo in continuous integration
 - [Troubleshooting Guide](troubleshooting.md) - Common issues and solutions
