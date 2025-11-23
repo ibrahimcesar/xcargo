@@ -1,0 +1,106 @@
+# Test self-hosting: xcargo builds itself
+# This workflow tests xcargo's ability to cross-compile itself
+
+name: Self-Hosting Test
+
+on:
+  workflow_dispatch:  # Manual trigger for testing
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'xcargo.toml'
+      - '.github/workflows/self-host-test.yml'
+
+jobs:
+  self-host-build:
+    name: "Self-host build on ${{ matrix.os }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Test on macOS (can build for macOS and Linux with Zig)
+          - os: macos-latest
+            host_target: aarch64-apple-darwin
+            test_targets: "x86_64-unknown-linux-gnu,x86_64-apple-darwin"
+
+          # Test on Linux (can build for Linux and potentially Windows)
+          - os: ubuntu-latest
+            host_target: x86_64-unknown-linux-gnu
+            test_targets: "x86_64-unknown-linux-musl,aarch64-unknown-linux-gnu"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Zig (for cross-compilation)
+        if: runner.os == 'macOS'
+        run: brew install zig
+
+      - name: Install Zig (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz
+          tar -xf zig-linux-x86_64-0.11.0.tar.xz
+          sudo mv zig-linux-x86_64-0.11.0/zig /usr/local/bin/
+          zig version
+
+      - name: Install cross-compilation targets
+        run: |
+          IFS=',' read -ra TARGETS <<< "${{ matrix.test_targets }}"
+          for target in "${TARGETS[@]}"; do
+            rustup target add "$target"
+          done
+
+      - name: Build xcargo for host (bootstrap)
+        run: |
+          echo "Building xcargo for ${{ matrix.host_target }}"
+          cargo build --release
+          ./target/release/xcargo --version
+
+      - name: Self-host: xcargo builds itself for multiple targets
+        run: |
+          echo "Using xcargo to cross-compile itself..."
+          echo "Targets: ${{ matrix.test_targets }}"
+
+          # Use xcargo to build for configured targets
+          IFS=',' read -ra TARGETS <<< "${{ matrix.test_targets }}"
+          for target in "${TARGETS[@]}"; do
+            echo "Building for $target..."
+            ./target/release/xcargo build --target "$target" --release --verbose
+          done
+
+      - name: Verify built binaries
+        run: |
+          echo "Checking built artifacts..."
+          find target -name "xcargo" -o -name "xcargo.exe" | head -10
+
+          # Check file sizes
+          IFS=',' read -ra TARGETS <<< "${{ matrix.test_targets }}"
+          for target in "${TARGETS[@]}"; do
+            binary_path="target/$target/release/xcargo"
+            if [ -f "$binary_path" ]; then
+              size=$(du -h "$binary_path" | cut -f1)
+              echo "✓ $target: $size"
+            else
+              echo "✗ $target: binary not found"
+            fi
+          done
+
+      - name: Upload self-hosted binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-hosted-${{ matrix.os }}
+          path: |
+            target/*/release/xcargo
+            target/*/release/xcargo.exe
+          if-no-files-found: warn
