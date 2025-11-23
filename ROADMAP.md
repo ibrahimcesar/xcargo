@@ -53,6 +53,36 @@ Our goal is to deliver a stable, well-documented, battle-tested cross-compilatio
 - **Matrix Builds** - Multi-target automation
 - **Release Command** - `xcargo release` with changelog
 
+### Distribution Automation (cargo-dist)
+- **Self-Hosting Builds** - xcargo builds xcargo for all platforms (dogfooding)
+- **Automated Installers** - Shell script, PowerShell, Homebrew tap
+- **GitHub Releases Integration** - Automatic binary uploads and release notes
+- **Package Manager Support** - Homebrew, Scoop, APT repositories
+- **One-Command Install** - `curl https://xcargo.sh | sh`
+
+**Implementation Plan:**
+1. Basic Setup (2 hours)
+   - Add `[workspace.metadata.dist]` configuration
+   - Run `cargo dist init` to generate workflows
+   - Test release process on feature branch
+
+2. Self-Hosting (4 hours)
+   - Configure workflow to use xcargo for cross-compilation
+   - Replace default cross/zig with `xcargo build --all --parallel`
+   - Validate builds on all target platforms
+
+3. Enhanced Distribution (1 day)
+   - Set up Homebrew tap publishing
+   - Create custom installers with system checks
+   - Test installers on clean VMs (Linux, macOS, Windows)
+
+4. Production Polish (2 days)
+   - Integrate with package managers (apt, scoop)
+   - Add offline installation support
+   - Documentation for all installation methods
+
+**Effort:** 3-4 days | **Impact:** High - Professional distribution channel
+
 ### Developer Experience
 - **Build Profiles** - Predefined target groups (mobile, server, minimal)
 - **TUI Interface** - Interactive target selection with ratatui
@@ -64,10 +94,10 @@ Our goal is to deliver a stable, well-documented, battle-tested cross-compilatio
 ## 🎨 Long-Term Vision
 
 ### Ecosystem
-- Plugin marketplace
-- Community target configurations
-- Custom builder support
-- Integration with cargo-dist
+- Plugin marketplace/registry
+- Community target configurations repository
+- Custom builder framework
+- cargo-dist for professional distribution (see post-1.0 section above)
 
 ### Platform Support
 - Improved Windows native support (beyond WSL2)
