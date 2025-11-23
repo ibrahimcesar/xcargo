@@ -36,7 +36,10 @@ impl Builder {
             let failures = Arc::clone(&failures);
 
             let handle = task::spawn_blocking(move || {
-                println!("\n[{}] Starting build for: {}", idx + 1, target);
+                use crate::output::helpers;
+
+                println!();
+                helpers::info(format!("[{}] Starting build for: {}", idx + 1, target));
                 println!("{}", "─".repeat(50));
 
                 // Create a new builder for this task
@@ -45,7 +48,7 @@ impl Builder {
                     Err(e) => {
                         let mut failures = failures.lock().unwrap();
                         failures.push(target.clone());
-                        eprintln!("Failed to create builder for {target}: {e}");
+                        helpers::error(format!("Failed to create builder for {target}: {e}"));
                         return;
                     }
                 };
@@ -58,7 +61,7 @@ impl Builder {
                     Err(e) => {
                         let mut failures = failures.lock().unwrap();
                         failures.push(target.clone());
-                        eprintln!("Failed to build {target}: {e}");
+                        helpers::error(format!("Failed to build {target}: {e}"));
                     }
                 }
             });

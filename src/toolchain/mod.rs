@@ -181,7 +181,9 @@ impl ToolchainManager {
     /// # }
     /// ```
     pub fn install_target(&self, toolchain: &str, target: &str) -> Result<()> {
-        println!("Installing target {target} for toolchain {toolchain}...");
+        use crate::output::helpers;
+
+        helpers::progress(format!("Installing target {target} for toolchain {toolchain}"));
 
         let output = Command::new(&self.rustup_path)
             .args(["target", "add", target, "--toolchain", toolchain])
@@ -195,7 +197,7 @@ impl ToolchainManager {
             )));
         }
 
-        println!("Successfully installed target {target}");
+        helpers::success(format!("Installed target {target}"));
         Ok(())
     }
 
@@ -221,7 +223,9 @@ impl ToolchainManager {
     /// # }
     /// ```
     pub fn install_toolchain(&self, toolchain: &str) -> Result<()> {
-        println!("Installing toolchain {toolchain}...");
+        use crate::output::helpers;
+
+        helpers::progress(format!("Installing toolchain {toolchain}"));
 
         let output = Command::new(&self.rustup_path)
             .args(["toolchain", "install", toolchain])
@@ -235,7 +239,7 @@ impl ToolchainManager {
             )));
         }
 
-        println!("Successfully installed toolchain {toolchain}");
+        helpers::success(format!("Installed toolchain {toolchain}"));
         Ok(())
     }
 
