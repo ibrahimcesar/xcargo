@@ -22,22 +22,23 @@ Our goal is to deliver a stable, well-documented, battle-tested cross-compilatio
 | Error Handling | ✅ Complete | Structured errors, helpful suggestions |
 | Documentation | ✅ Complete | Guides, API docs, troubleshooting |
 | CI/CD Testing | ✅ Complete | Cross-platform matrix, Zig & containers |
-| Test Coverage | 🚧 In Progress | 64.55% (target: 80%) |
+| Test Coverage | 🚧 In Progress | 68.20% (target: 80%) |
 | Progress Bars | ✅ Complete | Build status with indicatif |
 | Binary Distribution | ✅ Complete | cargo-dist with 5 platforms, installers |
 
 ### Remaining Work
 
 **Test Coverage** (P0 - Critical)
-- Current: 64.55% coverage (1,218/1,887 lines)
-- Target: 80% coverage (~292 more lines)
-- Focus: CLI command paths, build executor edge cases
+- Current: 68.20% coverage (1,287/1,887 lines)
+- Target: 80% coverage (~220 more lines, 25-30 tests)
+- Focus: src/main.rs (47%), src/target/mod.rs (58%), src/doctor/report.rs (77%)
 
 **Recent Progress (2025-11-23):**
 - ✅ Added cargo-dist integration (Phase 1)
 - ✅ Configured 5-platform binary distribution
 - ✅ Set up automated installers (shell, PowerShell, Homebrew)
 - ✅ Added 30 integration and CLI tests (+2.55% coverage)
+- ✅ Added 56 execution path tests for linker/Zig/container/config (+3.66% coverage)
 
 ---
 
