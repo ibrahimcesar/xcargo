@@ -1,0 +1,162 @@
+# GitLab CI Template for xcargo
+#
+# This template shows how to use xcargo in GitLab CI/CD
+# Copy to .gitlab-ci.yml in your repository root
+
+stages:
+  - build
+  - test
+  - release
+
+variables:
+  CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+  RUST_VERSION: "stable"
+
+# Cache cargo dependencies
+.cargo_cache:
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .cargo/
+      - target/
+
+#
+# Build Jobs - One per target
+#
+
+build:linux-x64:
+  stage: build
+  image: rust:latest
+  extends: .cargo_cache
+  script:
+    # Install xcargo
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ibrahimcesar/xcargo/releases/latest/download/xcargo-installer.sh | sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+
+    # Install Zig for cross-compilation
+    - wget https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz
+    - tar -xf zig-linux-x86_64-0.11.0.tar.xz
+    - mv zig-linux-x86_64-0.11.0/zig /usr/local/bin/
+
+    # Build
+    - xcargo build --release --target x86_64-unknown-linux-gnu
+  artifacts:
+    paths:
+      - target/x86_64-unknown-linux-gnu/release/${CI_PROJECT_NAME}
+    expire_in: 1 week
+
+build:linux-musl:
+  stage: build
+  image: rust:latest
+  extends: .cargo_cache
+  script:
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ibrahimcesar/xcargo/releases/latest/download/xcargo-installer.sh | sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - wget https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz
+    - tar -xf zig-linux-x86_64-0.11.0.tar.xz
+    - mv zig-linux-x86_64-0.11.0/zig /usr/local/bin/
+    - xcargo build --release --target x86_64-unknown-linux-musl
+  artifacts:
+    paths:
+      - target/x86_64-unknown-linux-musl/release/${CI_PROJECT_NAME}
+    expire_in: 1 week
+
+build:linux-arm64:
+  stage: build
+  image: rust:latest
+  extends: .cargo_cache
+  script:
+    - apt-get update && apt-get install -y gcc-aarch64-linux-gnu
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ibrahimcesar/xcargo/releases/latest/download/xcargo-installer.sh | sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - xcargo build --release --target aarch64-unknown-linux-gnu
+  artifacts:
+    paths:
+      - target/aarch64-unknown-linux-gnu/release/${CI_PROJECT_NAME}
+    expire_in: 1 week
+
+build:windows:
+  stage: build
+  image: rust:latest
+  extends: .cargo_cache
+  script:
+    - apt-get update && apt-get install -y mingw-w64
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ibrahimcesar/xcargo/releases/latest/download/xcargo-installer.sh | sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - xcargo build --release --target x86_64-pc-windows-gnu
+  artifacts:
+    paths:
+      - target/x86_64-pc-windows-gnu/release/${CI_PROJECT_NAME}.exe
+    expire_in: 1 week
+
+#
+# Parallel build alternative (faster)
+#
+
+build:parallel:
+  stage: build
+  image: rust:latest
+  extends: .cargo_cache
+  only:
+    - main
+  script:
+    # Install dependencies
+    - apt-get update && apt-get install -y gcc-aarch64-linux-gnu mingw-w64
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ibrahimcesar/xcargo/releases/latest/download/xcargo-installer.sh | sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+
+    # Install Zig
+    - wget https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz
+    - tar -xf zig-linux-x86_64-0.11.0.tar.xz
+    - mv zig-linux-x86_64-0.11.0/zig /usr/local/bin/
+
+    # Add targets
+    - rustup target add x86_64-unknown-linux-gnu
+    - rustup target add x86_64-unknown-linux-musl
+    - rustup target add aarch64-unknown-linux-gnu
+    - rustup target add x86_64-pc-windows-gnu
+
+    # Build all targets in parallel
+    - |
+      xcargo build --release --target \
+        x86_64-unknown-linux-gnu,\
+        x86_64-unknown-linux-musl,\
+        aarch64-unknown-linux-gnu,\
+        x86_64-pc-windows-gnu
+  artifacts:
+    paths:
+      - target/*/release/${CI_PROJECT_NAME}
+      - target/*/release/${CI_PROJECT_NAME}.exe
+    expire_in: 1 week
+
+#
+# Test Jobs
+#
+
+test:unit:
+  stage: test
+  image: rust:latest
+  extends: .cargo_cache
+  script:
+    - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ibrahimcesar/xcargo/releases/latest/download/xcargo-installer.sh | sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - xcargo test --target x86_64-unknown-linux-gnu
+
+#
+# Release Job (tags only)
+#
+
+release:binaries:
+  stage: release
+  image: curlimages/curl:latest
+  only:
+    - tags
+  dependencies:
+    - build:linux-x64
+    - build:linux-musl
+    - build:linux-arm64
+    - build:windows
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+    # Upload to GitLab Package Registry or create release
+    # See: https://docs.gitlab.com/ee/user/packages/
