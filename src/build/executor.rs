@@ -63,6 +63,22 @@ impl Builder {
         })
     }
 
+    /// Check if a Cargo.toml exists in current directory or parent directories
+    fn has_cargo_toml() -> bool {
+        let mut current_dir = std::env::current_dir().ok();
+
+        while let Some(dir) = current_dir {
+            let cargo_toml = dir.join("Cargo.toml");
+            if cargo_toml.exists() {
+                return true;
+            }
+
+            current_dir = dir.parent().map(|p| p.to_path_buf());
+        }
+
+        false
+    }
+
     /// Build the current project
     ///
     /// # Examples
@@ -83,6 +99,16 @@ impl Builder {
     /// ```
     pub fn build(&self, options: &BuildOptions) -> Result<()> {
         helpers::section(format!("xcargo {}", options.operation.as_str()));
+
+        // Check for Cargo.toml early to provide helpful error
+        if !Self::has_cargo_toml() {
+            helpers::error("No Cargo.toml found in current directory or parent directories");
+            helpers::tip("Initialize a new Rust project with: cargo init");
+            helpers::tip("Or navigate to an existing Rust project directory");
+            return Err(Error::Config(
+                "No Cargo.toml found. This doesn't appear to be a Rust project.".to_string(),
+            ));
+        }
 
         // Determine target
         let target_triple = if let Some(target) = &options.target {
